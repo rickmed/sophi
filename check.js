@@ -11,7 +11,7 @@ import { dequal as isDeepEqual } from "dequal"
 	'    at _throwIt (/sophi/check.js:11:10)\n' +
 }
 */
-const FAIL = "CHECK_TEST_FAIL"
+export const FAIL = "CHECK_TEST_FAIL"
 
 function _CheckErr(op, message, received, expected) {
 	return {
@@ -21,50 +21,84 @@ function _CheckErr(op, message, received, expected) {
 	}
 }
 
-const OP_EQ = "Equal"
-const OP_EQ_MSG = "expected values to be Deeply Equal"
 
-function eq(rec, exp, userMsg) {
+export const OP_EQ = "Equal"
+export const OP_EQ_MSG = "expected values to be Deeply Equal"
+
+export function eq(rec, exp, userMsg) {
 	if (!isDeepEqual(rec, exp)) {
 		throw _CheckErr(OP_EQ, userMsg || OP_EQ_MSG, rec, exp)
 	}
 }
 
-const OP_NOT_EQ = "Not Equal"
-const OP_NOT_EQ_MSG = "expected values to NOT be Deeply Equal"
 
-function notEq(rec, exp, userMsg) {
+export const OP_NOT_EQ = "Not Equal"
+export const OP_NOT_EQ_MSG = "expected values to NOT be Deeply Equal"
+
+export function notEq(rec, exp, userMsg) {
 	if (isDeepEqual(rec, exp)) {
 		throw _CheckErr(OP_NOT_EQ, userMsg || OP_NOT_EQ_MSG, rec, exp)
 	}
 }
 
-const OP_IS = "==="
-const OP_IS_MSG = "expected values to be ==="
 
-function is(rec, exp, userMsg) {
+export const OP_IS = "==="
+export const OP_IS_MSG = "expected values to be ==="
+
+export function is(rec, exp, userMsg) {
 	if (rec !== exp) {
 		throw _CheckErr(OP_IS, userMsg || OP_IS_MSG, rec, exp)
 	}
 }
 
-const OP_NOT_IS = "!=="
-const OP_NOT_IS_MSG = "expected values to be !=="
 
-function isNot(rec, exp, userMsg) {
+export const OP_NOT_IS = "!=="
+export const OP_NOT_IS_MSG = "expected values to be !=="
+
+export function isNot(rec, exp, userMsg) {
 	if (rec === exp) {
 		throw _CheckErr(OP_NOT_IS, userMsg || OP_NOT_IS_MSG, rec, exp)
 	}
 }
 
-export {
-	eq, notEq, is, isNot,
+
+export const OP_THROW = "Throws"
+export const OP_THROW_MSG = "expected function to Throw"
+
+export function throws(fn, userMsg) {
+	let err
+	let threw = false
+	try {
+		fn()
+	} catch (e) {
+		err = e
+		threw = true
+	} finally {   /* eslint-disable no-unsafe-finally */
+		if (!threw) {
+			const msg = userMsg || OP_THROW_MSG
+			throw _CheckErr(OP_THROW, msg, undefined, undefined)
+		}
+		return err
+	}
 }
 
-export const CONSTANTS = {
-	OP_EQ, OP_EQ_MSG,
-	OP_NOT_EQ, OP_NOT_EQ_MSG,
-	OP_IS, OP_IS_MSG,
-	OP_NOT_IS, OP_NOT_IS_MSG,
-	FAIL
+
+export const OP_NOT_THROW = "Not Throws"
+export const OP_NOT_THROW_MSG = "expected function to NOT Throw"
+
+export function notThrows(fn, userMsg) {
+	let err
+	let threw = false
+	try {
+		fn()
+	} catch (e) {
+		err = e
+		threw = true
+	} finally {   /* eslint-disable no-unsafe-finally */
+		if (!threw) {
+			const msg = userMsg || OP_NOT_THROW_MSG
+			throw _CheckErr(OP_NOT_THROW, msg, undefined, undefined)
+		}
+		return err
+	}
 }

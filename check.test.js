@@ -4,15 +4,24 @@ import {
 	notEq as check_not_Eq,
 	is as check_is,
 	isNot as check_isNot,
-	CONSTANTS as C
+	throws as check_Throws,
+	notThrows as check_notThrows,
+	OP_EQ, OP_EQ_MSG,
+	OP_NOT_EQ, OP_NOT_EQ_MSG,
+	OP_IS, OP_IS_MSG,
+	OP_NOT_IS, OP_NOT_IS_MSG,
+	OP_THROW, OP_THROW_MSG,
+	OP_NOT_THROW, OP_NOT_THROW_MSG,
+	FAIL
 } from "./check.js"
+
 
 function _assertCheckErr(err, rec, exp, opID, opMsg) {
 
 	const errKs = new Set(Object.getOwnPropertyNames(err))
 	const expKs = new Set(["type", "op", "message", "received", "expected", "stack"])
 	expect_(errKs).toEqual(expKs)
-	expect_(err.type).toEqual(C.FAIL)
+	expect_(err.type).toEqual(FAIL)
 	expect_(typeof err.stack).toEqual("string")
 
 	expect_(err.received).toEqual(rec)
@@ -24,6 +33,7 @@ function _assertCheckErr(err, rec, exp, opID, opMsg) {
 	expect_(err.message).toEqual(opMsg)
 }
 
+
 describe("check_Eq()", () => {
 
 	it("should throw correct object", () => {
@@ -32,7 +42,7 @@ describe("check_Eq()", () => {
 		try {
 			check_Eq(rec, exp)
 		} catch (err) {
-			_assertCheckErr(err, rec, exp, C.OP_EQ, C.OP_EQ_MSG)
+			_assertCheckErr(err, rec, exp, OP_EQ, OP_EQ_MSG)
 		}
 	})
 
@@ -40,6 +50,7 @@ describe("check_Eq()", () => {
 		check_Eq(["exp"], ["exp"])
 	})
 })
+
 
 describe("check_not_Eq()", () => {
 
@@ -49,7 +60,7 @@ describe("check_not_Eq()", () => {
 		try {
 			check_not_Eq(rec, exp)
 		} catch (err) {
-			_assertCheckErr(err, rec, exp, C.OP_NOT_EQ, C.OP_NOT_EQ_MSG)
+			_assertCheckErr(err, rec, exp, OP_NOT_EQ, OP_NOT_EQ_MSG)
 		}
 	})
 
@@ -57,6 +68,7 @@ describe("check_not_Eq()", () => {
 		check_not_Eq(["rec"], ["exp"])
 	})
 })
+
 
 describe("check_is()", () => {
 
@@ -66,7 +78,7 @@ describe("check_is()", () => {
 		try {
 			check_is(rec, exp)
 		} catch (err) {
-			_assertCheckErr(err, rec, exp, C.OP_IS, C.OP_IS_MSG)
+			_assertCheckErr(err, rec, exp, OP_IS, OP_IS_MSG)
 		}
 	})
 
@@ -77,6 +89,7 @@ describe("check_is()", () => {
 	})
 })
 
+
 describe("check_isNot()", () => {
 
 	it("should throw correct object", () => {
@@ -86,11 +99,49 @@ describe("check_isNot()", () => {
 		try {
 			check_isNot(exp, rec)
 		} catch (err) {
-			_assertCheckErr(err, rec, exp, C.OP_NOT_IS, C.OP_NOT_IS_MSG)
+			_assertCheckErr(err, rec, exp, OP_NOT_IS, OP_NOT_IS_MSG)
 		}
 	})
 
 	it("should not throw", () => {
 		check_isNot(["rec"], ["exp"])
 	})
+})
+
+
+describe("throws()", () => {
+
+	it("should return the thrown error by the passed function", () => {
+		const throwErr = {}
+		const err = check_Throws(() => { throw throwErr })
+		expect_(err).toBe(throwErr)
+	})
+
+	it("should throw correctly", () => {
+		try {
+			check_Throws(() => {})
+		} catch (err) {
+			_assertCheckErr(err, undefined, undefined, OP_THROW, OP_THROW_MSG)
+		}
+	})
+
+})
+
+
+describe("throws()", () => {
+
+	it("should throw correctly", () => {
+		try {
+			check_notThrows(() => {})
+		} catch (err) {
+			_assertCheckErr(err, undefined, undefined, OP_NOT_THROW, OP_NOT_THROW_MSG)
+		}
+	})
+
+	it("should return the thrown error by the passed function", () => {
+		const throwErr = {}
+		const err = check_notThrows(() => { throw throwErr })
+		expect_(err).toBe(throwErr)
+	})
+
 })
