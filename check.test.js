@@ -1,5 +1,12 @@
 import { describe, it, expect as expect_ } from "vitest"
-import { check_Eq, check_not_Eq, check_is, check_isNot, CONSTANTS as C } from "./check.js"
+import {
+	eq as check_Eq,
+	notEq as check_not_Eq,
+	is as check_is,
+	isNot as check_isNot
+} from "./check.js"
+import { CONSTANTS as C } from "./check_core.js"
+
 
 function _assertCheckErr(err, rec, exp, opID, opMsg) {
 

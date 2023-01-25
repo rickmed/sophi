@@ -59,11 +59,7 @@ function is(rec, exp, userMsg, not) {
 	_throwIt(testResult, rec, exp, msg, op)
 }
 
-const _check = {
-	eq, is
-}
-
-export { _check }
+export { eq, is }
 
 export const CONSTANTS = {
 	OP_EQ, OP_EQ_MSG,
