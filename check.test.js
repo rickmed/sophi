@@ -3,10 +3,9 @@ import {
 	eq as check_Eq,
 	notEq as check_not_Eq,
 	is as check_is,
-	isNot as check_isNot
+	isNot as check_isNot,
+	CONSTANTS as C
 } from "./check.js"
-import { CONSTANTS as C } from "./check_core.js"
-
 
 function _assertCheckErr(err, rec, exp, opID, opMsg) {
 
