@@ -25,11 +25,10 @@ function _CheckErr(received, expected, message, op, stack) {
 	}
 }
 
-
-const OP_EQ = "equal"
-const OP_EQ_MSG = "expected values to be deeply equal"
-const OP_NOT_EQ = "not equal"
-const OP_NOT_EQ_MSG = "expected values to NOT be deeply equal"
+const OP_EQ = "Equal"
+const OP_EQ_MSG = "expected values to be Deeply Equal"
+const OP_NOT_EQ = "Not Equal"
+const OP_NOT_EQ_MSG = "expected values to NOT be Deeply Equal"
 
 function eq(rec, exp, userMsg, not) {
 	let op = OP_EQ
