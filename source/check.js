@@ -2,7 +2,7 @@ import { dequal as isDeepEqual } from "dequal"
 
 /*
 {
-	type: 'CHECK_TEST_FAIL',
+	code: CHECK_FAIL
 	op: 'equal'
 	message: 'expected values to be deeply equal',
 	received: [ 'rec' ],
@@ -11,12 +11,12 @@ import { dequal as isDeepEqual } from "dequal"
 	'    at _throwIt (/sophi/check.js:11:10)\n' +
 }
 */
-export const FAIL = "CHECK_TEST_FAIL"
+export const CHECK_FAIL = "ERR_SOPHI_CHECK"
 
 function _CheckErr(op, message, received, expected) {
 	return {
 		op, message, received, expected,
-		type: FAIL,
+		code: CHECK_FAIL,
 		stack: Error().stack
 	}
 }

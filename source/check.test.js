@@ -12,16 +12,16 @@ import {
 	OP_NOT_IS, OP_NOT_IS_MSG,
 	OP_THROW, OP_THROW_MSG,
 	OP_NOT_THROW, OP_NOT_THROW_MSG,
-	FAIL
+	CHECK_FAIL
 } from "./check.js"
 
 
 function _assertCheckErr(err, rec, exp, opID, opMsg) {
 
 	const errKs = new Set(Object.getOwnPropertyNames(err))
-	const expKs = new Set(["type", "op", "message", "received", "expected", "stack"])
+	const expKs = new Set(["code", "op", "message", "received", "expected", "stack"])
 	expect_(errKs).toEqual(expKs)
-	expect_(err.type).toEqual(FAIL)
+	expect_(err.code).toEqual(CHECK_FAIL)
 	expect_(typeof err.stack).toEqual("string")
 
 	expect_(err.received).toEqual(rec)
