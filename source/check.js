@@ -66,19 +66,12 @@ export const OP_THROW = "Throws"
 export const OP_THROW_MSG = "expected function to Throw"
 
 export function throws(fn, userMsg) {
-	let err
-	let threw = false
 	try {
 		fn()
+		const msg = userMsg || OP_THROW_MSG
+		throw _CheckErr(OP_THROW, msg, undefined, undefined)
 	} catch (e) {
-		err = e
-		threw = true
-	} finally {   /* eslint-disable no-unsafe-finally */
-		if (!threw) {
-			const msg = userMsg || OP_THROW_MSG
-			throw _CheckErr(OP_THROW, msg, undefined, undefined)
-		}
-		return err
+		return e
 	}
 }
 
@@ -87,18 +80,10 @@ export const OP_NOT_THROW = "Not Throws"
 export const OP_NOT_THROW_MSG = "expected function to NOT Throw"
 
 export function notThrows(fn, userMsg) {
-	let err
-	let threw = false
 	try {
 		fn()
 	} catch (e) {
-		err = e
-		threw = true
-	} finally {   /* eslint-disable no-unsafe-finally */
-		if (!threw) {
-			const msg = userMsg || OP_NOT_THROW_MSG
-			throw _CheckErr(OP_NOT_THROW, msg, undefined, undefined)
-		}
-		return err
+		const msg = userMsg || OP_NOT_THROW_MSG
+		throw _CheckErr(OP_NOT_THROW, msg, e, null)
 	}
 }

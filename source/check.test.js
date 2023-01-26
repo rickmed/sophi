@@ -117,7 +117,7 @@ describe("throws()", () => {
 		expect_(err).toBe(throwErr)
 	})
 
-	it("should throw correctly", () => {
+	it("check function should throw correctly", () => {
 		try {
 			check_Throws(() => {})
 		} catch (err) {
@@ -130,18 +130,28 @@ describe("throws()", () => {
 
 describe("notThrows()", () => {
 
-	it("should throw correctly", () => {
+	it("check function should not throw correctly", () => {
+		check_notThrows(() => {})
+	})
+
+	it("check function should throw correctly with received as the thrown Error", () => {
+		const throwErr = {}
 		try {
-			check_notThrows(() => {})
+			check_notThrows(() => { throw throwErr })
 		} catch (err) {
-			_assertCheckErr(err, undefined, undefined, OP_NOT_THROW, OP_NOT_THROW_MSG)
+
+			const errKs = new Set(Object.getOwnPropertyNames(err))
+			const expKs = new Set(["code", "op", "message", "received", "expected", "stack"])
+			expect_(errKs).toEqual(expKs)
+			expect_(err.code).toEqual(CHECK_FAIL)
+			expect_(typeof err.stack).toEqual("string")
+
+			expect_(err.received).toEqual(throwErr)
+			expect_(err.received).toBe(throwErr)
+			expect_(err.expected).toBe(null)
+
+			expect_(err.op).toEqual(OP_NOT_THROW)
+			expect_(err.message).toEqual(OP_NOT_THROW_MSG)
 		}
 	})
-
-	it("should return the thrown error by the passed function", () => {
-		const throwErr = {}
-		const err = check_notThrows(() => { throw throwErr })
-		expect_(err).toBe(throwErr)
-	})
-
 })
