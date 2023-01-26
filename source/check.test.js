@@ -34,7 +34,7 @@ function _assertCheckErr(err, rec, exp, opID, opMsg) {
 }
 
 
-describe("check_Eq()", () => {
+describe("eq()", () => {
 
 	it("should throw correct object", () => {
 		const exp = ["exp"]
@@ -52,7 +52,7 @@ describe("check_Eq()", () => {
 })
 
 
-describe("check_not_Eq()", () => {
+describe("notEq()", () => {
 
 	it("should throw correct object", () => {
 		const rec = ["x"]
@@ -70,7 +70,7 @@ describe("check_not_Eq()", () => {
 })
 
 
-describe("check_is()", () => {
+describe("is()", () => {
 
 	it("should throw correct object", () => {
 		const exp = {}
@@ -90,7 +90,7 @@ describe("check_is()", () => {
 })
 
 
-describe("check_isNot()", () => {
+describe("isNot()", () => {
 
 	it("should throw correct object", () => {
 		let rec = {}
@@ -128,7 +128,7 @@ describe("throws()", () => {
 })
 
 
-describe("throws()", () => {
+describe("notThrows()", () => {
 
 	it("should throw correctly", () => {
 		try {
