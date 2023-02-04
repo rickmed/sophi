@@ -13,7 +13,7 @@ import {
 	OP_THROW, OP_THROW_MSG,
 	OP_NOT_THROW, OP_NOT_THROW_MSG,
 	CHECK_FAIL
-} from "./check.js"
+} from "./checker.js"
 
 
 function _assertCheckErr(err, rec, exp, opID, opMsg) {
