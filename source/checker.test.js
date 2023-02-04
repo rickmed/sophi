@@ -13,7 +13,7 @@ import {
 function _assertCheckErr(err, rec, exp, opID, opMsg) {
 
 	const errKs = new Set(Object.getOwnPropertyNames(err))
-	const expKs = new Set(["code", "op", "message", "received", "expected", "stack"])
+	const expKs = new Set(["code", "op", "message", "userMsg", "received", "expected", "stack"])
 	expect_(errKs).toEqual(expKs)
 	expect_(err.code).toEqual(CHECK_FAILED)
 	expect_(typeof err.stack).toEqual("string")
@@ -118,7 +118,6 @@ describe("throws()", () => {
 			_assertCheckErr(err, undefined, undefined, OP_THROWS, OP_THROWS_MSG)
 		}
 	})
-
 })
 
 
@@ -135,7 +134,7 @@ describe("notThrows()", () => {
 		} catch (err) {
 
 			const errKs = new Set(Object.getOwnPropertyNames(err))
-			const expKs = new Set(["code", "op", "message", "received", "expected", "stack"])
+			const expKs = new Set(["code", "op", "message", "userMsg", "received", "expected", "stack"])
 			expect_(errKs).toEqual(expKs)
 			expect_(err.code).toEqual(CHECK_FAILED)
 			expect_(typeof err.stack).toEqual("string")
