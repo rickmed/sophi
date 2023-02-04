@@ -10,6 +10,7 @@
   "rules": {
     "semi": ["error", "never"],
     "quotes": ["error", "double", { "allowTemplateLiterals": true }],
-    "no-inner-declarations" : "off"
+    "no-inner-declarations" : "off",
+		"no-console": ["error", { "allow": ["warn", "error"] }]
   }
 }
