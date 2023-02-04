@@ -45,6 +45,11 @@ export function setColorsProto() {
 
 		get(_, k, receiver) {
 
+			//TODO: while https://github.com/nodejs/node/issues/46496 resolves
+			if (k === "protocol" || k === "href") {
+				return
+			}
+
 			if (typeof k === "symbol") {
 				return
 			}
@@ -63,7 +68,7 @@ export function setColorsProto() {
 
 			const msgTitle = `"${k}" style not supported by sophi/colors package.\n`
 			const msgInfo = "This is a JS Proxy in Object.prototype"
-			return msgTitle + msgInfo
+			throw new Error(msgTitle + msgInfo)
 		}
 	}
 
