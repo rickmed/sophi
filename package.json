@@ -1,10 +1,11 @@
 {
   "type": "module",
   "scripts": {
-    "test": "clear; vitest"
+    "test": "clear; vitest",
+    "test:cov": "clear; vitest --coverage"
   },
   "devDependencies": {
-    "chokidar-cli": "^3.0.0",
+    "@vitest/coverage-istanbul": "^0.28.4",
     "eslint": "^8.32.0",
     "vitest": "^0.26.3"
   },
