@@ -1,19 +1,17 @@
 import { dequal as isDeepEqual } from "dequal"
 
+export const CHECK_FAILED = "ERR_SOPHI_CHECK"
 /*
 {
-	code: CHECK_FAIL
-	op: 'equal'
-	message: 'expected values to be deeply equal',
-	userMsg: true | false
-	received: [ 'rec' ],
-	expected: [ 'exp' ],
-	stack: 'Error: \n' +
-	'    at _throwIt (/sophi/check.js:11:10)\n' +
+	code: CHECK_FAILED,
+	op: "Deep Equal",
+	message: "Expected to be Deeply Equal",
+	received:: a,
+	expected:: b,
+	userMsg:: true | false,
+	stack:: string
 }
 */
-export const CHECK_FAILED = "ERR_SOPHI_CHECK"
-
 function _CheckErr(op, userMsg, received, expected, opMsg) {
 	return {
 		op, received, expected,

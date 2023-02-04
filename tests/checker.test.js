@@ -10,7 +10,7 @@ import {
 } from "../source/checker.js"
 
 
-function _assertCheckErr(err, rec, exp, opID, opMsg) {
+function _assertCheckErr(err, rec, exp, opID, opMsg, usrMsg) {
 
 	const errKs = new Set(Object.getOwnPropertyNames(err))
 	const expKs = new Set(["code", "op", "message", "userMsg", "received", "expected", "stack"])
@@ -24,7 +24,16 @@ function _assertCheckErr(err, rec, exp, opID, opMsg) {
 	expect_(err.expected).toBe(exp)
 
 	expect_(err.op).toEqual(opID)
-	expect_(err.message).toEqual(opMsg)
+
+	if (usrMsg) {
+		expect_(err.userMsg).toEqual(true)
+		expect_(err.message).toEqual(usrMsg)
+	}
+	else {
+		expect_(err.userMsg).toEqual(false)
+		expect_(err.message).toEqual(opMsg)
+	}
+
 }
 
 
@@ -42,6 +51,17 @@ describe("eq()", () => {
 
 	it("should not throw", () => {
 		check_Eq(["exp"], ["exp"])
+	})
+
+	it("works with user message", () => {
+		const exp = ["exp"]
+		const rec = ["rec"]
+		const userMsg = "Custom message"
+		try {
+			check_Eq(rec, exp, userMsg)
+		} catch (err) {
+			_assertCheckErr(err, rec, exp, OP_EQ, OP_EQ_MSG, userMsg)
+		}
 	})
 })
 
