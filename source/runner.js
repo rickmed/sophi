@@ -1,10 +1,7 @@
 /*
-in:  [{
-	fileURL,
-	tests: {}
-}]
+srcSuite:  [inObj]
 out: [{
-	fileURL,
+	inObj...,
 	tests: [{
 		title,
 		status: TEST_PASSED | TEST_FAILED,
@@ -19,19 +16,6 @@ export function run(srcSuite) {
 }
 
 
-/*
-in:  [{
-	fileURL,
-	tests: {}
-}]
-out:  [{
-	fileURL,
-	tests: [{
-		title,
-		fn
-	}]
-}]
-*/
 function _collect(srcSuite) {
 	let suite = srcSuite
 
@@ -64,26 +48,10 @@ function _collect(srcSuite) {
 	return suite
 }
 
+
 export const TEST_PASSED = "SOPHI_TEST_PASSED"
 export const TEST_FAILED = "SOPHI_TEST_FAILED"
-/*
-out:  [{
-	fileURL,
-	tests: [{
-		title,
-		fn
-	}]
-}]
-out: [{
-	fileURL,
-	tests: [{
-		title,
-		status,
-		fn,
-		error?
-	}]
-}]
-*/
+
 function runTestFns(suite) {
 	for (const fileSuite of suite) {
 		for (const test of fileSuite.tests) {
