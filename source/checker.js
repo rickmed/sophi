@@ -22,8 +22,8 @@ function _CheckErr(op, message, received, expected) {
 }
 
 
-export const OP_EQ = "Equal"
-export const OP_EQ_MSG = "expected values to be Deeply Equal"
+export const OP_EQ = "Deep Equal"
+export const OP_EQ_MSG = "Expected to be Deeply Equal"
 
 export function check_Eq(rec, exp, userMsg) {
 	if (!isDeepEqual(rec, exp)) {
@@ -32,8 +32,8 @@ export function check_Eq(rec, exp, userMsg) {
 }
 
 
-export const OP_NOTEQ = "Not Equal"
-export const OP_NOTEQ_MSG = "expected values to NOT be Deeply Equal"
+export const OP_NOTEQ = "NOT Deep Equal"
+export const OP_NOTEQ_MSG = "Expected NOT to be Deeply Equal"
 
 export function check_NotEq(rec, exp, userMsg) {
 	if (isDeepEqual(rec, exp)) {
@@ -42,8 +42,8 @@ export function check_NotEq(rec, exp, userMsg) {
 }
 
 
-export const OP_IS = "==="
-export const OP_IS_MSG = "expected values to be ==="
+export const OP_IS = "Object.is"
+export const OP_IS_MSG = "Expected to be the same (Object.is)"
 
 export function check_is(rec, exp, userMsg) {
 	if (rec !== exp) {
@@ -52,8 +52,8 @@ export function check_is(rec, exp, userMsg) {
 }
 
 
-export const OP_ISNOT = "!=="
-export const OP_ISNOT_MSG = "expected values to be !=="
+export const OP_ISNOT = "!Object.is"
+export const OP_ISNOT_MSG = "Expected NOT to be the same (Object.is)"
 
 export function check_isNot(rec, exp, userMsg) {
 	if (rec === exp) {
@@ -63,7 +63,7 @@ export function check_isNot(rec, exp, userMsg) {
 
 
 export const OP_THROWS = "Throws"
-export const OP_THROWS_MSG = "expected function to Throw"
+export const OP_THROWS_MSG = "Expected function to Throw"
 
 export function check_Throws(fn, userMsg) {
 	try {
@@ -77,7 +77,7 @@ export function check_Throws(fn, userMsg) {
 
 
 export const OP_NOTTHROWS = "Not Throws"
-export const OP_NOTTHROWS_MSG = "expected function to NOT Throw"
+export const OP_NOTTHROWS_MSG = "Expected function NOT to Throw"
 
 export function check_NotThrows(fn, userMsg) {
 	try {
