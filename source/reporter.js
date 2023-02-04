@@ -1,6 +1,6 @@
 import { CHECK_FAIL as SOPHI_CHECK_FAIL } from "./checker.js"
 import { EOL } from "node:os"
-import { setStringPrototype, restoreStringPrototype } from "./colors.js"
+import { setColorsProto, restoreColorsProto } from "./colors.js"
 
 /*
 suite:  [{
@@ -15,7 +15,7 @@ suite:  [{
 }]
 */
 export function report(suite) {
-	setStringPrototype()
+	setColorsProto()
 
 	const { Console } = globalThis.console
 	const console = new Console({
@@ -137,5 +137,5 @@ export function report(suite) {
 		print_nl()
 	}
 
-	restoreStringPrototype()
+	restoreColorsProto()
 }

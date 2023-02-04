@@ -4,7 +4,7 @@ import path from "node:path"
 import { fileURLToPath } from "node:url"
 import { report } from "./reporter.js"
 import { run } from "./runner.js"
-import { setStringPrototype as setColorsPrototype, restoreStringPrototype } from "./colors.js"
+import { setColorsProto, restoreColorsProto } from "./colors.js"
 import { OP_EQ_MSG } from "./checker.js"
 
 describe("report() - prints Failed tests correctly", async () => {
@@ -201,8 +201,7 @@ async function setup(fixturesPaths) {
 	report(suiteResults)
 	process.stdout.write = origStdOutWrite
 
-
-	setColorsPrototype()
+	setColorsProto()
 
 	/*
 	suite:: [
@@ -239,5 +238,5 @@ async function setup(fixturesPaths) {
 }
 
 function cleanup() {
-	restoreStringPrototype()
+	restoreColorsProto()
 }

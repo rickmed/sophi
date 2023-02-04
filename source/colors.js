@@ -31,15 +31,14 @@ export let styleCodes = new Map([
 
 export const RESET = "\x1b[m"
 
-
 const ObjectProto = Object.prototype
 const ObjectProtoKs = new Set(Object.getOwnPropertyNames(ObjectProto))
 
 let proxyCreated = false
 
-export function setStringPrototype() {
+export function setColorsProto() {
 
-	if (proxyCreated) return
+	if (proxyCreated === true) return
 	proxyCreated = true
 
 	const proxyHandler = {
@@ -72,7 +71,8 @@ export function setStringPrototype() {
 	Object.setPrototypeOf(String.prototype, proxy)
 }
 
-export function restoreStringPrototype() {
-	if (!proxyCreated) return
+export function restoreColorsProto() {
+	if (proxyCreated === false) return
 	Object.setPrototypeOf(String.prototype, Object.getPrototypeOf({}))
+	proxyCreated = false
 }
