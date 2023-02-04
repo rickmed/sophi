@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { run, TEST_PASSED, TEST_FAILED } from "./runner.js"
+import { run, TEST_PASSED, TEST_FAILED } from "../source/runner.js"
 
 function _checkResSchema(runRes) {
 	expect(runRes).toBeInstanceOf(Array)

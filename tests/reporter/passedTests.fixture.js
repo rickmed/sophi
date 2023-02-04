@@ -1,5 +1,5 @@
 import { expect } from "vitest"
-import { check_is } from "./checker.js"
+import { check_is } from "../../source/checker.js"
 
 export const tests = {
 	"Example test title"() {

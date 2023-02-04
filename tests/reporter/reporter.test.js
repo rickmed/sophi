@@ -2,10 +2,10 @@ import { describe, test, expect } from "vitest"
 import { readFile } from "node:fs/promises"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
-import { report } from "./reporter.js"
-import { run } from "./runner.js"
-import { setColorsProto, restoreColorsProto } from "./colors.js"
-import { OP_EQ_MSG } from "./checker.js"
+import { report } from "../../source/reporter.js"
+import { run } from "../../source/runner.js"
+import { setColorsProto, restoreColorsProto } from "../../source/colors.js"
+import { OP_EQ_MSG } from "../../source/checker.js"
 
 describe("report() - prints Failed tests correctly", async () => {
 
