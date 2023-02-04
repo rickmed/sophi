@@ -1,4 +1,4 @@
-import { CHECK_FAIL as SOPHI_CHECK_FAIL } from "./checker.js"
+import { CHECK_FAILED as SOPHI_CHECK_FAIL } from "./checker.js"
 import { EOL } from "node:os"
 import { setColorsProto, restoreColorsProto } from "./colors.js"
 

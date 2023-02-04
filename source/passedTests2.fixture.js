@@ -1,4 +1,4 @@
-import { is as check_is } from "./checker.js"
+import { check_is } from "./checker.js"
 
 export const tests = {
 	"Example test title 3"() {

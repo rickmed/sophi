@@ -1,18 +1,12 @@
 import { describe, it, expect as expect_ } from "vitest"
 import {
-	eq as check_Eq,
-	notEq as check_not_Eq,
-	is as check_is,
-	isNot as check_isNot,
-	throws as check_Throws,
-	notThrows as check_notThrows,
-	OP_EQ, OP_EQ_MSG,
-	OP_NOT_EQ, OP_NOT_EQ_MSG,
-	OP_IS, OP_IS_MSG,
-	OP_NOT_IS, OP_NOT_IS_MSG,
-	OP_THROW, OP_THROW_MSG,
-	OP_NOT_THROW, OP_NOT_THROW_MSG,
-	CHECK_FAIL
+	check_Eq, OP_EQ, OP_EQ_MSG,
+	check_NotEq, OP_NOTEQ, OP_NOTEQ_MSG,
+	check_is, OP_IS, OP_IS_MSG,
+	check_isNot, OP_ISNOT, OP_ISNOT_MSG,
+	check_Throws, OP_THROWS, OP_THROWS_MSG,
+	check_NotThrows, OP_NOTTHROWS, OP_NOTTHROWS_MSG,
+	CHECK_FAILED
 } from "./checker.js"
 
 
@@ -21,7 +15,7 @@ function _assertCheckErr(err, rec, exp, opID, opMsg) {
 	const errKs = new Set(Object.getOwnPropertyNames(err))
 	const expKs = new Set(["code", "op", "message", "received", "expected", "stack"])
 	expect_(errKs).toEqual(expKs)
-	expect_(err.code).toEqual(CHECK_FAIL)
+	expect_(err.code).toEqual(CHECK_FAILED)
 	expect_(typeof err.stack).toEqual("string")
 
 	expect_(err.received).toEqual(rec)
@@ -58,14 +52,14 @@ describe("notEq()", () => {
 		const rec = ["x"]
 		const exp = ["x"]
 		try {
-			check_not_Eq(rec, exp)
+			check_NotEq(rec, exp)
 		} catch (err) {
-			_assertCheckErr(err, rec, exp, OP_NOT_EQ, OP_NOT_EQ_MSG)
+			_assertCheckErr(err, rec, exp, OP_NOTEQ, OP_NOTEQ_MSG)
 		}
 	})
 
 	it("should not throw", () => {
-		check_not_Eq(["rec"], ["exp"])
+		check_NotEq(["rec"], ["exp"])
 	})
 })
 
@@ -99,7 +93,7 @@ describe("isNot()", () => {
 		try {
 			check_isNot(exp, rec)
 		} catch (err) {
-			_assertCheckErr(err, rec, exp, OP_NOT_IS, OP_NOT_IS_MSG)
+			_assertCheckErr(err, rec, exp, OP_ISNOT, OP_ISNOT_MSG)
 		}
 	})
 
@@ -121,7 +115,7 @@ describe("throws()", () => {
 		try {
 			check_Throws(() => {})
 		} catch (err) {
-			_assertCheckErr(err, undefined, undefined, OP_THROW, OP_THROW_MSG)
+			_assertCheckErr(err, undefined, undefined, OP_THROWS, OP_THROWS_MSG)
 		}
 	})
 
@@ -131,27 +125,27 @@ describe("throws()", () => {
 describe("notThrows()", () => {
 
 	it("check function should not throw correctly", () => {
-		check_notThrows(() => {})
+		check_NotThrows(() => {})
 	})
 
 	it("check function should throw correctly with received as the thrown Error", () => {
 		const throwErr = {}
 		try {
-			check_notThrows(() => { throw throwErr })
+			check_NotThrows(() => { throw throwErr })
 		} catch (err) {
 
 			const errKs = new Set(Object.getOwnPropertyNames(err))
 			const expKs = new Set(["code", "op", "message", "received", "expected", "stack"])
 			expect_(errKs).toEqual(expKs)
-			expect_(err.code).toEqual(CHECK_FAIL)
+			expect_(err.code).toEqual(CHECK_FAILED)
 			expect_(typeof err.stack).toEqual("string")
 
 			expect_(err.received).toEqual(throwErr)
 			expect_(err.received).toBe(throwErr)
 			expect_(err.expected).toBe(null)
 
-			expect_(err.op).toEqual(OP_NOT_THROW)
-			expect_(err.message).toEqual(OP_NOT_THROW_MSG)
+			expect_(err.op).toEqual(OP_NOTTHROWS)
+			expect_(err.message).toEqual(OP_NOTTHROWS_MSG)
 		}
 	})
 })

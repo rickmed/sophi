@@ -1,4 +1,4 @@
-import { eq as check_Eq } from "./checker.js"
+import { check_Eq } from "./checker.js"
 
 export const tests = {
 	"This is an example title provided by the user"() {
