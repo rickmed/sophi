@@ -1,9 +1,11 @@
 import { dequal as isDeepEqual } from "dequal"
 
-export const CHECK_FAILED = "ERR_SOPHI_CHECK"
+
+export const ERR_SOPHI_CHECK = "ERR_SOPHI_CHECK"
+
 /*
 {
-	code: CHECK_FAILED,
+	code: ERR_SOPHI_CHECK,
 	op: "Deep Equal",
 	message: "Expected to be Deeply Equal",
 	received:: a,
@@ -17,7 +19,7 @@ function _CheckErr(op, userMsg, received, expected, opMsg) {
 		op, received, expected,
 		message: userMsg || opMsg,
 		userMsg: userMsg ? true : false,
-		code: CHECK_FAILED,
+		code: ERR_SOPHI_CHECK,
 		stack: Error().stack
 	}
 }

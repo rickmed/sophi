@@ -1,22 +1,33 @@
 /*
-srcSuite:  [inObj]
+srcSuite:  [{
+	file_path: tests/testFile.js,
+	file_contents:: str,
+	tests: {
+		"title name"() {}
+	}
+}]
 out: [{
 	inObj...,
 	tests: [{
 		title,
-		status: TEST_PASSED | TEST_FAILED,
 		fn,
 		error?
 	}]
 }]
 */
 export function run(srcSuite) {
-	const mappedSuite = _collect(srcSuite)
-	return runTestFns(mappedSuite)
+	const startTime = Date.now()
+	const mappedSuite = collect(srcSuite)
+	const suiteResults = runTestFns(mappedSuite)
+	const ret = {
+		results: suiteResults,
+		duration: Date.now() - startTime
+	}
+	return ret
 }
 
 
-function _collect(srcSuite) {
+function collect(srcSuite) {
 	let suite = srcSuite
 
 	for (const srcFileSuite of suite) {
@@ -36,34 +47,31 @@ function _collect(srcSuite) {
 			}
 
 			tests.push(test)
-
-			//
-			function _Test(title, fn) {
-				return { title, fn }
-			}
 		}
 
 		srcFileSuite.tests = tests
 	}
+
 	return suite
+
+
+	function _Test(title, fn) {
+		return { title, fn }
+	}
 }
 
-
-export const TEST_PASSED = "SOPHI_TEST_PASSED"
-export const TEST_FAILED = "SOPHI_TEST_FAILED"
-
 function runTestFns(suite) {
+
 	for (const fileSuite of suite) {
 		for (const test of fileSuite.tests) {
 			try {
 				test.fn()
-				test.status = TEST_PASSED
 			}
 			catch (e) {
-				test.status = TEST_FAILED
 				test.error = e
 			}
 		}
 	}
+
 	return suite
 }

@@ -6,7 +6,7 @@ import {
 	check_isNot, OP_ISNOT, OP_ISNOT_MSG,
 	check_Throws, OP_THROWS, OP_THROWS_MSG,
 	check_NotThrows, OP_NOTTHROWS, OP_NOTTHROWS_MSG,
-	CHECK_FAILED
+	ERR_SOPHI_CHECK
 } from "../source/checker.js"
 
 
@@ -15,7 +15,7 @@ function _assertCheckErr(err, rec, exp, opID, opMsg, usrMsg) {
 	const errKs = new Set(Object.getOwnPropertyNames(err))
 	const expKs = new Set(["code", "op", "message", "userMsg", "received", "expected", "stack"])
 	expect_(errKs).toEqual(expKs)
-	expect_(err.code).toEqual(CHECK_FAILED)
+	expect_(err.code).toEqual(ERR_SOPHI_CHECK)
 	expect_(typeof err.stack).toEqual("string")
 
 	expect_(err.received).toEqual(rec)
@@ -156,7 +156,7 @@ describe("notThrows()", () => {
 			const errKs = new Set(Object.getOwnPropertyNames(err))
 			const expKs = new Set(["code", "op", "message", "userMsg", "received", "expected", "stack"])
 			expect_(errKs).toEqual(expKs)
-			expect_(err.code).toEqual(CHECK_FAILED)
+			expect_(err.code).toEqual(ERR_SOPHI_CHECK)
 			expect_(typeof err.stack).toEqual("string")
 
 			expect_(err.received).toEqual(throwErr)

@@ -7,5 +7,6 @@ export default defineConfig({
 			provider: "istanbul"
 		},
 		setupFiles: ["tests/vitest-setup-file.js"],
+		reporters: "dot"
 	}
 })
