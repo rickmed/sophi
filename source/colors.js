@@ -46,10 +46,10 @@ export function setColorsProto() {
 		get(_, k, receiver) {
 
 			if (ObjectProtoKs.has(k)) {
-				if (typeof ObjectProto[k] === "function") {
-					return (...args) => ObjectProto[k].call(receiver, ...args)
+				if (k === "constructor" || k === "__proto__") {
+					return ObjectProto[k]
 				}
-				return ObjectProto[k]
+				return (...args) => ObjectProto[k].call(receiver, ...args)
 			}
 
 			const styleCode = styleCodes.get(k)
