@@ -4,13 +4,12 @@ import path from "node:path"
 import { fileURLToPath } from "node:url"
 import { report, toHuman } from "../../source/reporter.js"
 import { run } from "../../source/runner.js"
-import { setColorsProto } from "../../source/colors.js"
+import "../../source/colors/colors.js"
 
 const NL = "\n"
 const INDENT = " ".repeat(3)
 const TABLE_PADDING = " "
 const TABLE_SEP = TABLE_PADDING + "\x1B[90m│\x1B[39m" + TABLE_PADDING
-setColorsProto()
 const SEP = (" | ").dim
 
 
@@ -300,8 +299,6 @@ describe("report()", () => {
 		report(suiteResults, reportOpts)
 
 		process.stdout.write = origStdOutWrite
-
-		setColorsProto()
 
 		return logs
 

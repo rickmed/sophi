@@ -1,5 +1,5 @@
 import { it as test, expect, describe as group } from "vitest"
-import { setColorsProto, restoreColorsProto, ink } from "../source/colors.js"
+import { setColorsProto, restoreColorsProto, ink } from "../source/colors/pure.js"
 
 
 group("Proxy forwards correctly to original Object.Prototype's: ", () => {

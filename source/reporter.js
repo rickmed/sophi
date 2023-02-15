@@ -3,7 +3,7 @@ import util from "node:util"
 import Table from "cli-table3"
 import { deepDiff, empty } from "./deepDiff.js"
 import { ERR_SOPHI_CHECK } from "./checker.js"
-import { setColorsProto, restoreColorsProto } from "./colors.js"
+import "./colors/colors.js"
 
 const NL = "\n"
 const TABLE_OPTS = {
@@ -37,8 +37,6 @@ suite: {
 */
 export function report(suite, {printDiffs = false} = {}) {
 
-	setColorsProto()
-
 	const L = " | ".dim
 	const { print, indent, outdent } = helpers()
 	const resultsSummary = summarize()
@@ -49,8 +47,6 @@ export function report(suite, {printDiffs = false} = {}) {
 	print_FailedTests()
 	print_nl()
 	print_Summary()
-
-	restoreColorsProto()
 
 
 	function helpers() {
