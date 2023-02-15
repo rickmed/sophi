@@ -54,7 +54,7 @@ export function setColorsProto() {
 			if (codes) {
 				return buildAnsi(codes, str)
 			}
-		}
+		},
 	}
 
 	const proxy = new Proxy({}, proxyHandler)
@@ -75,7 +75,7 @@ export const ink = new Proxy({}, {
 			return (str) => buildAnsi(codes, str)
 		}
 		throw new Error("sophi/colors: style not supported")
-	}
+	},
 })
 
 

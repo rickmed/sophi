@@ -38,7 +38,7 @@ describe("report()", () => {
 					INDENT + "Expected to be Deeply Equal".yellow.thick + NL,
 					INDENT + NL,
 					INDENT + INDENT + `${"2".underline}3${"0".underline}${"99".underline}`.red + TABLE_SEP + `${"1".underline}3${"1".underline}`.green + NL,
-				]
+				],
 			},
 			{
 				FailPathLoc: "tests/reporter/sophiAssertions.fixture.js:8:3",
@@ -57,7 +57,7 @@ describe("report()", () => {
 					"      \x1B[31m    kk3: true\x1B[39m \x1B[90m│\x1B[39m \x1B[32m}\x1B[39m         \n" +
 					"      \x1B[31m  }\x1B[39m           \x1B[90m│\x1B[39m           \n" +
 					"      \x1B[31m}\x1B[39m             \x1B[90m│\x1B[39m           \n",
-				]
+				],
 			},
 			{
 				FailPathLoc: "tests/reporter/sophiAssertions.fixture.js:11:3",
@@ -71,7 +71,7 @@ describe("report()", () => {
 					INDENT + "Expected to be Deeply Equal".yellow.thick + NL,
 					INDENT + NL,
 					INDENT + INDENT + `${"2".underline}3${"0".underline}`.red + TABLE_SEP + `${"1".underline}3${"1".underline}${"99".underline}`.green + NL,
-				]
+				],
 			},
 			{
 				FailPathLoc: "tests/reporter/nonSophiAssertion.fixture.js:5:13",
@@ -81,7 +81,7 @@ describe("report()", () => {
 					INDENT + ("  > ".red + "5:       expect(1).toBe(2)").thick + NL,
 					INDENT + `    6:    },`.dim + NL,
 				],
-			}
+			},
 		]
 
 		const logs = await setup(suites)
@@ -264,7 +264,7 @@ describe("report()", () => {
 				Promise.resolve(pathFromRootDir(path, rootDir)),
 				readFile(new URL(path, import.meta.url), "utf8"),
 				import(path),
-			]
+			],
 		))
 
 		let suite = []

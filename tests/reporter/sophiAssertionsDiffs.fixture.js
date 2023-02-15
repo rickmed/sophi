@@ -8,13 +8,13 @@ export const tests = {
 		const rec = {
 			[symb1]: "A",
 			k2: {
-				k: true
+				k: true,
 			},
 		}
 
 		const exp = {
 			[symb1]: "AB",
-			k3: 1
+			k3: 1,
 		}
 
 		check_Eq(rec, exp)
@@ -25,5 +25,5 @@ export const tests = {
 		const exp = 11
 
 		check_is(rec, exp)
-	}
+	},
 }

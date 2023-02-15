@@ -21,7 +21,7 @@ export function run(srcSuite) {
 	const suiteResults = runTestFns(mappedSuite)
 	const ret = {
 		results: suiteResults,
-		duration: Date.now() - startTime
+		duration: Date.now() - startTime,
 	}
 	return ret
 }

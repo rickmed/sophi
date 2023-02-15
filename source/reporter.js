@@ -15,8 +15,8 @@ const TABLE_OPTS = {
 	},
 	style: {
 		["padding-left"]: 0,
-		["padding-right"]: 0
-	}
+		["padding-right"]: 0,
+	},
 }
 const TABLE_PADDING = 1
 
@@ -57,7 +57,7 @@ export function report(suite, {printDiffs = false} = {}) {
 
 		const console = new globalThis.console.Console({
 			stdout: process.stdout,
-			groupIndentation: 3
+			groupIndentation: 3,
 		})
 
 		const print = console.log
@@ -116,7 +116,7 @@ export function report(suite, {printDiffs = false} = {}) {
 			countPassedTests,
 			countFailedTests,
 			countPassedFiles,
-			countFailedFiles
+			countFailedFiles,
 		}
 	}
 
@@ -160,7 +160,7 @@ export function report(suite, {printDiffs = false} = {}) {
 				testTitle: title,
 				testErr: error,
 				cleanErrStack: cleanStack,
-				failLoc: getFailLocation(cleanStack, file_path)
+				failLoc: getFailLocation(cleanStack, file_path),
 			}
 		}
 
@@ -316,14 +316,14 @@ export function report(suite, {printDiffs = false} = {}) {
 						const recCell = {
 							content: rec,
 							style: {
-								["padding-right"]: TABLE_PADDING
+								["padding-right"]: TABLE_PADDING,
 							},
 						}
 
 						const expCell = {
 							content: exp,
 							style: {
-								["padding-left"]: TABLE_PADDING
+								["padding-left"]: TABLE_PADDING,
 							},
 						}
 
@@ -339,7 +339,7 @@ export function report(suite, {printDiffs = false} = {}) {
 									depth: 2,
 									compact: false,
 									colors: false,
-									sorted: true
+									sorted: true,
 								}
 								let objStr = util.inspect(comp, opts)
 								str = objStr
@@ -349,7 +349,7 @@ export function report(suite, {printDiffs = false} = {}) {
 									depth: 3,
 									compact: true,
 									colors: false,
-									sorted: true
+									sorted: true,
 								}
 								str = util.inspect(comp, opts)
 							}
@@ -383,14 +383,14 @@ export function report(suite, {printDiffs = false} = {}) {
 				const recCell = {
 					content: rec.red,
 					style: {
-						["padding-right"]: TABLE_PADDING
+						["padding-right"]: TABLE_PADDING,
 					},
 				}
 
 				const expCell = {
 					content: exp.green,
 					style: {
-						["padding-left"]: TABLE_PADDING
+						["padding-left"]: TABLE_PADDING,
 					},
 				}
 
@@ -493,7 +493,7 @@ export function report(suite, {printDiffs = false} = {}) {
 
 			return {
 				line: Number(line),
-				col: Number(col)
+				col: Number(col),
 			}
 		}
 
@@ -510,7 +510,7 @@ export function report(suite, {printDiffs = false} = {}) {
 			countPassedFiles: pF,
 			countFailedFiles: fF,
 			countPassedTests: pT,
-			countFailedTests: fT
+			countFailedTests: fT,
 		} = resultsSummary
 
 		const tF = pF + fF

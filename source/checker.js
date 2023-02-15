@@ -20,7 +20,7 @@ function _CheckErr(op, userMsg, received, expected, opMsg) {
 		message: userMsg || opMsg,
 		userMsg: userMsg ? true : false,
 		code: ERR_SOPHI_CHECK,
-		stack: Error().stack
+		stack: Error().stack,
 	}
 }
 

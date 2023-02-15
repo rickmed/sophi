@@ -101,7 +101,7 @@ group(deepDiffFN + "returns correct diff for NON Equal structures", () => {
 			["a", "b"],
 			[1, { k1: "a" }],
 			[fn, 2],
-			[sym, 3]
+			[sym, 3],
 		])
 
 		const fn2 = () => { }
@@ -123,11 +123,11 @@ group(deepDiffFN + "returns correct diff for NON Equal structures", () => {
 					type: "Object",
 					diffs: new Map([
 						["k2", [empty, "e"]],
-					])
+					]),
 				}],
 				[fn, [2, 4]],
 				[{ k3: "f" }, [empty, fn2]],
-			])
+			]),
 		}
 
 		expect(rec).toEqual(exp)
@@ -149,10 +149,10 @@ group(deepDiffFN + "returns correct diff for NON Equal structures", () => {
 					type: "Object",
 					diffs: new Map([
 						["k1", ["a", "b"]],
-					])
+					]),
 				}],
 				[3, [5, empty]],
-			])
+			]),
 		}
 
 		expect(rec).toEqual(exp)
@@ -165,7 +165,7 @@ group(deepDiffFN + "returns correct diff for NON Equal structures", () => {
 			type: "Array",
 			diffs: new Map([
 				[1, [empty, 2]],
-			])
+			]),
 		}
 
 		expect(rec).toEqual(exp)
@@ -191,15 +191,15 @@ group(deepDiffFN + "returns correct diff for NON Equal structures", () => {
 			p7: {
 				pp7: [1, 2],
 				pp8: 65,
-				set1: new Set([1, 2])
-			}
+				set1: new Set([1, 2]),
+			},
 		}
 
 		const b = {
 			p2: fn_p2,
 			p3: 3,
 			p4: {
-				pp4: "pp4"
+				pp4: "pp4",
 			},
 			[p6]: "a",
 			[p8]: 0,
@@ -207,8 +207,8 @@ group(deepDiffFN + "returns correct diff for NON Equal structures", () => {
 			p7: {
 				pp7: [1],
 				pp8: 65,
-				set1: new Set([1, 3])
-			}
+				set1: new Set([1, 3]),
+			},
 		}
 
 		const rec = deepDiff(a, b)
@@ -229,13 +229,13 @@ group(deepDiffFN + "returns correct diff for NON Equal structures", () => {
 						["pp7", {
 							type: "Array",
 							diffs: new Map([
-								[1, [2, empty]]
-							])
+								[1, [2, empty]],
+							]),
 						}],
-						["set1", [new Set([2]), new Set([3])]]
-					])
-				}]
-			])
+						["set1", [new Set([2]), new Set([3])]],
+					]),
+				}],
+			]),
 		}
 
 		expect(rec).toEqual(exp)

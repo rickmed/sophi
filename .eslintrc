@@ -1,7 +1,7 @@
 {
   "extends": ["eslint:recommended"],
   "env": {
-    "es2022": true,
+    "es2021": true,
     "node": true
   },
   "parserOptions": {
@@ -11,6 +11,13 @@
     "semi": ["error", "never"],
     "quotes": ["error", "double", { "allowTemplateLiterals": true }],
     "no-inner-declarations" : "off",
-		"no-console": ["error", { "allow": ["warn", "error"] }]
+		"no-console": ["error", { "allow": ["warn", "error"] }],
+		"comma-dangle": ["error", {
+			"arrays": "always-multiline",
+			"objects": "always-multiline",
+			"imports": "always-multiline",
+			"exports": "always-multiline",
+			"functions": "always-multiline"
+	}]
   }
 }

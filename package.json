@@ -1,8 +1,8 @@
 {
   "type": "module",
   "scripts": {
-    "test": "clear; vitest",
-    "test:cov": "clear; vitest --coverage"
+    "test": "vitest",
+    "test:cov": "vitest --coverage"
   },
   "devDependencies": {
     "@vitest/coverage-istanbul": "^0.28.4",

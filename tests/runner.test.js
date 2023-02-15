@@ -9,15 +9,15 @@ test(RUN_FN + "returns Failed correctly", () => {
 	const simpleTest = {
 		[testTitle]() {
 			expect(1).toBe(2)
-		}
+		},
 	}
 
 	const fileURL = "someURL"
 	const tests = [
 		{
 			fileURL,
-			tests: simpleTest
-		}
+			tests: simpleTest,
+		},
 	]
 
 	const { results } = run(tests)
@@ -44,15 +44,15 @@ test(RUN_FN + "returns Passed correctly", () => {
 	const simpleTest = {
 		[testTitle]() {
 			expect(1).toBe(1)
-		}
+		},
 	}
 
 	const fileURL = "someURL"
 	const tests = [
 		{
 			fileURL,
-			tests: simpleTest
-		}
+			tests: simpleTest,
+		},
 	]
 
 	const { results } = run(tests)
@@ -83,15 +83,15 @@ test(RUN_FN + "returns mixed Passed & Failed correctly", () => {
 		},
 		[testTitle2]() {
 			expect(1).toBe(2)
-		}
+		},
 	}
 
 	const fileURL = "someURL"
 	const tests = [
 		{
 			fileURL,
-			tests: simpleTests
-		}
+			tests: simpleTests,
+		},
 	]
 
 	const { results } = run(tests)
@@ -125,7 +125,7 @@ test(RUN_FN + `with "only" modifier, returns only one result correctly`, () => {
 		},
 		testTitle2() {
 			expect(1).toBe(2)
-		}
+		},
 	}
 	const simpleTests2 = {
 		testTitle3() {
@@ -133,19 +133,19 @@ test(RUN_FN + `with "only" modifier, returns only one result correctly`, () => {
 		},
 		testTitle4() {
 			expect(1).toBe(2)
-		}
+		},
 	}
 
 	const fileURL = "URL1"
 	const tests = [
 		{
 			fileURL,
-			tests: simpleTests1
+			tests: simpleTests1,
 		},
 		{
 			fileURL: "URL2",
-			tests: simpleTests2
-		}
+			tests: simpleTests2,
+		},
 	]
 
 	const { results } = run(tests)
@@ -172,15 +172,15 @@ test(RUN_FN + "adds tests duration", () => {
 	const simpleTest = {
 		[testTitle]() {
 			expect(1).toBe(2)
-		}
+		},
 	}
 
 	const fileURL = "someURL"
 	const tests = [
 		{
 			fileURL,
-			tests: simpleTest
-		}
+			tests: simpleTest,
+		},
 	]
 
 	const runRes = run(tests, Date)
