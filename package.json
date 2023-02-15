@@ -5,9 +5,18 @@
     "test:cov": "vitest --coverage"
   },
   "devDependencies": {
+    "@jonahsnider/benchmark": "^5.0.0",
     "@vitest/coverage-istanbul": "^0.28.4",
+    "ansi-colors": "^4.1.3",
+    "chalk": "^5.2.0",
+    "cli-color": "^2.0.3",
+    "colorette": "^2.0.19",
     "eslint": "^8.32.0",
-    "vitest": "^0.26.3"
+    "kleur": "^4.1.5",
+    "nanocolors": "^0.2.13",
+    "picocolors": "^1.0.0",
+    "vitest": "^0.26.3",
+    "yoctocolors": "^1.0.0"
   },
   "dependencies": {
     "cli-table3": "^0.6.3",
