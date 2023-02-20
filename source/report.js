@@ -3,7 +3,7 @@ import util from "node:util"
 import { relative } from "node:path"
 import Table from "cli-table3"
 import { deepDiff, empty } from "./deepDiff.js"
-import { ERR_SOPHI_CHECK } from "./checker.js"
+import { ERR_SOPHI_CHECK } from "./check.js"
 import { extractTestTitleAndGroups } from "./suite.js"
 import { SOPHI } from "./utils.js"
 import "./colors/colors.js"
@@ -616,7 +616,7 @@ export function report(suite, {printDiffs = false, projectRoot = globalThis[SOPH
 
 		function print_todos(suite) {
 			if (summary.countTodoTests === 0) return
-			
+
 			indent()
 			print("🖊️ Todo tests: ".blue)
 			indent()

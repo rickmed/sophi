@@ -7,7 +7,7 @@ import {
 	check_Throws, OP_THROWS, OP_THROWS_MSG,
 	check_NotThrows, OP_NOTTHROWS, OP_NOTTHROWS_MSG,
 	ERR_SOPHI_CHECK,
-} from "../source/checker.js"
+} from "../source/check.js"
 
 
 function _assertCheckErr(err, rec, exp, opID, opMsg, usrMsg) {

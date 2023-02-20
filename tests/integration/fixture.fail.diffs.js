@@ -1,4 +1,4 @@
-import { check_Eq, check_is } from "../../source/checker.js"
+import { check_Eq, check_is } from "../../source/check.js"
 import { test } from "../../source/suite.js"
 
 test("Deep Diffs", () => {

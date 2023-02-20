@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises"
 import { describe, test, expect } from "vitest"
 import { absPathFromRel } from "../utils.js"
 import { run } from "../../source/run.js"
-import { report, toHuman } from "../../source/report"
+import { report, toHuman } from "../../source/report.js"
 import "../../source/colors/colors.js"
 
 const NL = "\n"

@@ -1,5 +1,5 @@
 import { expect } from "vitest"
-import { check_is } from "../../source/checker.js"
+import { check_is } from "../../source/check.js"
 import { test } from "../../source/suite.js"
 
 test("Example test title", () => {
