@@ -1,8 +1,11 @@
 import { EOL } from "node:os"
 import util from "node:util"
+import { relative } from "node:path"
 import Table from "cli-table3"
 import { deepDiff, empty } from "./deepDiff.js"
 import { ERR_SOPHI_CHECK } from "./checker.js"
+import { extractTestTitleAndGroups } from "./suite.js"
+import { SOPHI } from "./utils.js"
 import "./colors/colors.js"
 
 const NL = "\n"
@@ -22,124 +25,175 @@ const TABLE_PADDING = 1
 
 
 /*
-suite: {
-	duration:: time,
-	results: [{
-		file_path: "source/passedTests2.fixture.js",
-		file_contents:: string,
-		tests: [{
-			title,
-			error?,
-			fn,
-		}]
-	}]
+suite:: {
+	duration:: ms,
+	suites:: Map ('/home/sophi/tests/file1.test.js' -> {
+		clusters: {
+			runnable:: 'Test title 2' -> {fn, error?},
+			skipped:: 'Test title 3' -> {},
+			t0d0s:: 'Test title 3' -> {},
+		},
+		justUsed: bool,
+		testCount: number,
+		file_content:: string
+	})
 }
 */
-export function report(suite, {printDiffs = false} = {}) {
+export function report(suite, {printDiffs = false, projectRoot = globalThis[SOPHI].projectRoot} = {}) {
 
 	const L = " | ".dim
-	const { print, indent, outdent } = helpers()
-	const resultsSummary = summarize()
+	const { print, indent, outdent } = helpers(globalThis.console, process)
+	const summary = summarize(suite.suites)
 
 	print_nl()
-	print_PassedFilesPath()
-	print_nl(2)
-	print_FailedTests()
-	print_nl()
-	print_Summary()
+	if (summary.passedCountPerFile.size > 0) {
+		print_passedCountPerFile(summary.passedCountPerFile)
+		print_nl(2)
+	}
+	if (summary.fails.size > 0) {
+		print_FailedTests(summary.fails)
+		print_nl()
+	}
+	print_Summary(summary, suite)
 
+/*
 
-	function helpers() {
+	function warnIfNoTests(suites) {
+		for (const [filePath, suite] of suites) {
+			if (suite.testCount === 0) {
+				console.log()
+			}
+		}
+	}
+*/
+	function helpers(console, process) {
 
-		const console = new globalThis.console.Console({
+		const _console = new console.Console({
 			stdout: process.stdout,
 			groupIndentation: 3,
 		})
 
-		const print = console.log
-		const indent = console.group
-		const outdent = console.groupEnd
+		const print = _console.log
+		const indent = _console.group
+		const outdent = _console.groupEnd
 
 		return { print, indent, outdent }
 	}
 
-	function summarize() {
-		const { results } = suite
+	function summarize(suites) {
 
-		let failedTests = new Map()   // fileIdxInResults -> [testIdx]
-		let passedFilesStats = new Map()   // passedFilePath -> countPassedTests
+		let fails = new Map()   //  relFilePath -> {file_content, tests: testTitle -> {testErr, groups}}
+		let passedCountPerFile = new Map()   // filePath -> passedCount
+		let countSkippedFiles = 0
+		let countTodoFiles = 0
+
 		let countPassedTests = 0
 		let countFailedTests = 0
+		let countSkippedTests = 0
+		let countTodoTests = 0
+		let filesWithNoTests = new Set()
 
-		const resultsL = results.length
-		for (let fileSuite_idx = 0; fileSuite_idx < resultsL; fileSuite_idx++) {
+		for (const [filePath, suite] of suites) {
+
+			const relFilePath = relative(projectRoot, filePath)
+
+			if (suite.testCount === 0) {
+				filesWithNoTests.add(relFilePath)
+				continue
+			}
+
+			const {runnable, skipped, todos} = suite.clusters
+
+			countSkippedTests += skipped.size
+			countTodoTests += todos.size
+
+			if (runnable.size === 0) {
+				if (skipped.size > 0) countSkippedFiles++
+				else countTodoFiles++
+				continue
+			}
 
 			let filePassed = true
+			let failedTests
 
-			const { tests } = results[fileSuite_idx]
-			const testsL = tests.length
-			for (let testIdx = 0; testIdx < testsL; testIdx++) {
+			for (const [testID, test] of runnable) {
 
-				const test = tests[testIdx]
+				if (!test.error) {
+					countPassedTests++
+					continue
+				}
 
-				if (test.error) {
-					filePassed = false
-					countFailedTests++
+				filePassed = false
+				countFailedTests++
 
-					const fileFailedTests = failedTests.get(fileSuite_idx)
-					if (!fileFailedTests) {
-						failedTests.set(fileSuite_idx, [])
+				if (!fails.has(relFilePath)) {
+
+					failedTests = new Map()
+
+					const failInfo = {
+						file_content: suite.file_content,
+						tests: failedTests,
 					}
 
-					failedTests.get(fileSuite_idx).push(testIdx)
+					fails.set(relFilePath, failInfo)
 				}
-				else {
-					countPassedTests++
+
+				const {testTitle, groups} = extractTestTitleAndGroups(testID)
+
+				const testInfo = {
+					testErr: test.error,
+					groups,
 				}
+
+				failedTests.set(testTitle, testInfo)
 			}
 
 			if (filePassed) {
-				passedFilesStats.set(results[fileSuite_idx].file_path, testsL)
+				passedCountPerFile.set(relFilePath, runnable.size)
 			}
 		}
 
-		const countPassedFiles = passedFilesStats.size
-		const countFailedFiles = results.length - countPassedFiles
+		const countPassedFiles = passedCountPerFile.size
+		const countFailedFiles = fails.size
 
 		return {
-			failedTests,
-			passedFilesStats,
-			countPassedTests,
-			countFailedTests,
+			fails,
+			passedCountPerFile,
+
 			countPassedFiles,
 			countFailedFiles,
+			countSkippedFiles,
+			countTodoFiles,
+
+			countPassedTests,
+			countFailedTests,
+			countSkippedTests,
+			countTodoTests,
+
+			filesWithNoTests,
 		}
 	}
 
-	function print_PassedFilesPath() {
-		for (const [path, count] of resultsSummary.passedFilesStats) {
+	function print_passedCountPerFile(passedCountPerFile) {
+		for (const [path, count] of passedCountPerFile) {
 			const TESTS_PASSED = `${count} Test${count > 1 ? "s" : ""}`.green
 			print("✓".green.thick + " " + path + L + TESTS_PASSED)
 		}
 	}
 
-	function print_FailedTests() {
+	function print_FailedTests(fails) {
 
-		for (const [fileIdx, testIdxs] of resultsSummary.failedTests) {
+		for (const [file_path, {file_content, tests}] of fails) {
+			for (const [testTitle, {testErr, groups}] of tests) {
 
-			const fileSuite = suite.results[fileIdx]
-			const { file_path, file_contents } = fileSuite
-
-			for (const idx of testIdxs) {
-
-				const { testTitle, testErr, cleanErrStack, failLoc } = dependencies(fileSuite.tests[idx], file_path)
+				const { cleanErrStack, failLoc } = dependencies(testErr, file_path)
 
 				print_PathAndLine(file_path, failLoc)
 					print_nl()
 				indent()
-					print_TestTitle(testTitle)
+					print_TestTitle(testTitle, groups)
 					print_nl()
-					print_AssertionZone(failLoc.line, file_contents)
+					print_AssertionZone(failLoc.line, file_content)
 					print_nl()
 					print_ErrorDiagnostics(testErr, cleanErrStack)
 					print_nl(2)
@@ -148,13 +202,10 @@ export function report(suite, {printDiffs = false} = {}) {
 		}
 
 
-		function dependencies(test, file_path) {
-			const { error, title } = test
-			const cleanStack = trimErrStack(error.stack)
+		function dependencies(testErr, file_path) {
+			const cleanStack = trimErrStack(testErr.stack)
 
 			return {
-				testTitle: title,
-				testErr: error,
 				cleanErrStack: cleanStack,
 				failLoc: getFailLocation(cleanStack, file_path),
 			}
@@ -167,12 +218,14 @@ export function report(suite, {printDiffs = false} = {}) {
 			print(`${" Fail ".red.inverse} ${fileTitle.red.thick} ${"─".repeat(20).red}`)
 		}
 
-		function print_TestTitle(title) {
-			print(`${title}`.yellow.thick)
+		function print_TestTitle(title, groups) {
+			groups = groups.join(" ▶ ")
+			groups = groups === "" ? "" : (groups + " ▶ ")
+			print(`${groups}${title}`.yellow.thick)
 		}
 
-		function print_AssertionZone(failLine, file_contents, printNLines = 3) {
-			const fileLines = file_contents.split(EOL)
+		function print_AssertionZone(failLine, file_content, printNLines = 3) {
+			const fileLines = file_content.split(EOL)
 			const lowestLineIdx = failLine - Math.floor(printNLines / 2)
 			const highestLineIdx = lowestLineIdx + printNLines - 1
 			const padd = " ".repeat(4)
@@ -480,12 +533,12 @@ export function report(suite, {printDiffs = false} = {}) {
 		}
 
 		function getFailLocation(cleanErrStack, file_path) {
+
 			let failLine = cleanErrStack
-				.filter(x => x.includes(file_path))[0]
+				.find(x => x.includes(file_path))
 				.split(":")
 			const line = failLine[failLine.length - 2]
-			const col = failLine[failLine.length - 1]
-				.slice(0, -1)  // remove final ")"
+			const col = failLine[failLine.length - 1].replaceAll(")", "")
 
 			return {
 				line: Number(line),
@@ -500,38 +553,86 @@ export function report(suite, {printDiffs = false} = {}) {
 		}
 	}
 
-	function print_Summary() {
+	function print_Summary(summary, suite) {
 
-		const {
-			countPassedFiles: pF,
-			countFailedFiles: fF,
-			countPassedTests: pT,
-			countFailedTests: fT,
-		} = resultsSummary
+		let {
+			countFailedFiles: fail_F,
+			countPassedFiles: pass_F,
+			countSkippedFiles: skip_F,
+			countTodoFiles: todo_F,
 
-		const tF = pF + fF
-		const tT = pT + fT
+			countFailedTests: fail_T,
+			countPassedTests: pass_T,
+			countSkippedTests: skip_T,
+			countTodoTests: todo_T,
+
+			filesWithNoTests,
+		} = summary
+
+		let totalF = pass_F + fail_F + skip_F + todo_F
+		let totalT = pass_T + fail_T + skip_T + todo_T
 
 		const FILES = "   Files  ".dim
-		const FF = `${fF} Failed`.red
-		const PF = `${pF} Passed`.green
-		const TF = `${tF} Total`
+		fail_F = fail_F ? `${fail_F} Failed`.red + L : ""
+		pass_F = pass_F ? `${pass_F} Passed`.green +  L : ""
+		skip_F = skip_F ? `${skip_F} Skipped`.yellow + L : ""
+		todo_F = todo_F ? `${todo_F} Todo`.blue + L : ""
+		totalF = `${totalF} Total`
 
 		const TESTS = "   Tests  ".dim
-		const FT = `${fT} Failed`.red
-		const PT = `${pT} Passed`.green
-		const TT = `${tT} Total`
+		fail_T = fail_T ? `${fail_T} Failed`.red + L : ""
+		pass_T = pass_T ? `${pass_T} Passed`.green + L : ""
+		skip_T = skip_T ? `${skip_T} Skipped`.yellow + L : ""
+		todo_T = todo_T ? `${todo_T} Todo`.blue + L : ""
+		totalT = `${totalT} Total`
 
 		const separator = "─".repeat(Math.floor(process.stdout.columns * 0.75))
 
 		print(" Summary ".inverse + " " + separator)
 		print_nl()
+		print_FilesWithNoTests()
+		print_todos(suite)
 		indent()
-			print(FILES + FF + L + PF + L + TF)
-			print(TESTS + FT + L + PT + L + TT)
+			print(FILES + fail_F + pass_F + skip_F + todo_F + totalF)
+			print(TESTS + fail_T + pass_T + skip_T + todo_T + totalT)
 			print(`${"Duration".dim}  ${toHuman(suite.duration)}`)
 		outdent()
 		print_nl(2)
+
+
+		function print_FilesWithNoTests() {
+			if (filesWithNoTests.size > 0) {
+				indent()
+					print("🧟‍♀️Files with no tests: ".blue)
+					indent()
+						for (const filePath of filesWithNoTests) {
+							print("🧟‍♂️" + filePath.blue)
+						}
+					outdent()
+				outdent()
+				print_nl()
+			}
+		}
+
+		function print_todos(suite) {
+			if (summary.countTodoTests === 0) return
+			
+			indent()
+			print("🖊️ Todo tests: ".blue)
+			indent()
+			for (const [filePath, {clusters: {todos}}] of suite.suites) {
+				if (todos.size === 0) continue
+				print(`● ${relative(projectRoot, filePath)}`.blue)
+				indent()
+				for (const entry of todos) {
+					print(`◻ ${entry[0]}`.blue)
+				}
+				outdent()
+			}
+			outdent()
+			outdent()
+			print_nl()
+		}
 	}
 
 	function print_nl(i = 1) {
@@ -541,6 +642,7 @@ export function report(suite, {printDiffs = false} = {}) {
 		}
 	}
 }
+
 
 export function toHuman(ms) {
 

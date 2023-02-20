@@ -4,9 +4,9 @@ export default defineConfig({
 	test: {
 		forceRerunTriggers: [...configDefaults.forceRerunTriggers, "**/*.fixture.*"],
 		coverage: {
-			provider: "istanbul"
+			provider: "istanbul",
 		},
 		setupFiles: ["tests/vitest-setup-file.js"],
-		reporters: "dot"
-	}
+		reporters: "dot",
+	},
 })

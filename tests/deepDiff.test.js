@@ -1,10 +1,10 @@
-import { describe as group, it as test, expect } from "vitest"
+import { describe as group, it, expect } from "vitest"
 import { deepDiff, empty } from "../source/deepDiff"
 
 
 const deepDiffFN = "deepDiff() > "
 
-test(deepDiffFN + "returns false for Equal structures", () => {
+it(deepDiffFN + "returns false for Equal structures", () => {
 
 	let rec = deepDiff(null, null)
 	expect(rec).toBe(false)
@@ -52,13 +52,13 @@ test(deepDiffFN + "returns false for Equal structures", () => {
 
 group(deepDiffFN + "returns correct diff for NON Equal structures", () => {
 
-	test("different constructors", () => {
+	it("different constructors", () => {
 		let rec = deepDiff(/a/, [1])
 		expect(rec).toEqual([/a/, [1]])
 	})
 
 
-	test("Date", () => {
+	it("Date", () => {
 
 		const date1 = new Date("1970-01-02")
 		const date2 = new Date("1970-01-03")
@@ -68,14 +68,14 @@ group(deepDiffFN + "returns correct diff for NON Equal structures", () => {
 	})
 
 
-	test("RegExp", () => {
+	it("RegExp", () => {
 
 		let rec = deepDiff(/a/, /b/)
 		expect(rec).toEqual([/a/, /b/])
 	})
 
 
-	test("Set", () => {
+	it("Set", () => {
 
 		const obj = { p1: "k1" }
 		const obj2 = { p3: "k3" }
@@ -92,7 +92,7 @@ group(deepDiffFN + "returns correct diff for NON Equal structures", () => {
 	})
 
 
-	test("Map", () => {
+	it("Map", () => {
 
 		const fn = () => { }
 		const sym = Symbol()
@@ -134,7 +134,7 @@ group(deepDiffFN + "returns correct diff for NON Equal structures", () => {
 	})
 
 
-	test("Array", () => {
+	it("Array", () => {
 
 		let a = [0, [2], { k1: "a" }, 5]
 		let b = [0, 4, { k1: "b" }]
@@ -172,7 +172,7 @@ group(deepDiffFN + "returns correct diff for NON Equal structures", () => {
 	})
 
 
-	test("(Deep) Object", () => {
+	it("(Deep) Object", () => {
 
 		const fn_p1 = () => 1
 		const fn_p2 = () => 2
@@ -242,7 +242,7 @@ group(deepDiffFN + "returns correct diff for NON Equal structures", () => {
 	})
 
 
-	test("Unsuported Constructors", () => {
+	it("Unsuported Constructors", () => {
 
 		function ObjCtor() { }
 

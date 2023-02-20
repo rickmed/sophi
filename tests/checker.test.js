@@ -37,7 +37,7 @@ function _assertCheckErr(err, rec, exp, opID, opMsg, usrMsg) {
 }
 
 
-describe("eq()", () => {
+describe("check_Eq()", () => {
 
 	it("should throw correct object", () => {
 		const exp = ["exp"]
@@ -66,7 +66,7 @@ describe("eq()", () => {
 })
 
 
-describe("notEq()", () => {
+describe("check_NotEq()", () => {
 
 	it("should throw correct object", () => {
 		const rec = ["x"]
@@ -84,7 +84,7 @@ describe("notEq()", () => {
 })
 
 
-describe("is()", () => {
+describe("check_is()", () => {
 
 	it("should throw correct object", () => {
 		const exp = {}
@@ -104,7 +104,7 @@ describe("is()", () => {
 })
 
 
-describe("isNot()", () => {
+describe("check_isNot()", () => {
 
 	it("should throw correct object", () => {
 		let rec = {}
@@ -123,7 +123,7 @@ describe("isNot()", () => {
 })
 
 
-describe("throws()", () => {
+describe("check_Throws()", () => {
 
 	it("should return the thrown error by the passed function", () => {
 		const throwErr = {}
@@ -141,7 +141,7 @@ describe("throws()", () => {
 })
 
 
-describe("notThrows()", () => {
+describe("check_NotThrows()", () => {
 
 	it("check function should not throw correctly", () => {
 		check_NotThrows(() => {})

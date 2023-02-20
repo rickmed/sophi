@@ -1,9 +1,8 @@
-import { describe, test, expect } from "vitest"
 import { readFile } from "node:fs/promises"
-import path from "node:path"
-import { fileURLToPath } from "node:url"
-import { report, toHuman } from "../../source/reporter.js"
-import { run } from "../../source/runner.js"
+import { describe, test, expect } from "vitest"
+import { absPathFromRel } from "../utils.js"
+import { run } from "../../source/run.js"
+import { report, toHuman } from "../../source/report"
 import "../../source/colors/colors.js"
 
 const NL = "\n"
@@ -17,35 +16,36 @@ describe("report()", () => {
 
 	test("prints a base test suite correctly", async () => {
 
-		const suites = [
-			"./sophiAssertions.fixture.js",
-			"./passedTests.fixture.js",
-			"./nonSophiAssertion.fixture.js",
-			"./passedTests2.fixture.js",
+		const testsFixtures = [
+			"./fixture.fail.js",
+			"./fixture.pass.mixedAssert.js",
+			"./fixture.fail.nonSophiAssert.js",
+			"./fixture.pass.js",
+			"./fixture.todo.js",
 		]
 
 		const expectedSpecs = [
 			{
-				FailPathLoc: "tests/reporter/sophiAssertions.fixture.js:5:3",
-				TestTitle: "Test title",
+				FailPathLoc: "tests/integration/fixture.fail.js:6:3",
+				TestTitle: "group1 ▶ Test title",
 				AssertionZone: [
-					INDENT + `    4:    "Test title"() {`.dim + NL,
-					INDENT + ("  > ".red + "5:       check_Eq(23099, 131)").thick + NL,
-					INDENT + `    6:    },`.dim + NL,
+					INDENT + `    5:    test("Test title", () => {`.dim + NL,
+					INDENT + ("  > ".red + "6:       check_is(23099, 131)").thick + NL,
+					INDENT + `    7:    })`.dim + NL,
 				],
 				ErrorDiagnosticsSophi: [
-					INDENT + "Expected to be Deeply Equal".yellow.thick + NL,
+					INDENT + "Expected to be the same (Object.is)".yellow.thick + NL,
 					INDENT + NL,
 					INDENT + INDENT + `${"2".underline}3${"0".underline}${"99".underline}`.red + TABLE_SEP + `${"1".underline}3${"1".underline}`.green + NL,
 				],
 			},
 			{
-				FailPathLoc: "tests/reporter/sophiAssertions.fixture.js:8:3",
+				FailPathLoc: "tests/integration/fixture.fail.js:11:2",
 				TestTitle: "Test title 2",
 				AssertionZone: [
-					INDENT + `    7:    "Test title 2"() {`.dim + NL,
-					INDENT + ("  > ".red + `8:       check_Eq({k1: 10, k3: {kk3: true}}, {k1: 11, k2: "k2"}, "user message")`).thick + NL,
-					INDENT + `    9:    },`.dim + NL,
+					INDENT + `    10: test("Test title 2", () => {`.dim + NL,
+					INDENT + ("  > ".red + `11:    check_Eq({k1: 10, k3: {kk3: true}}, {k1: 11, k2: "k2"}, "user message")`).thick + NL,
+					INDENT + `    12: })`.dim + NL,
 				],
 				ErrorDiagnosticsSophi: [
 					"   \x1B[1m\x1B[33muser message\x1B[39m\x1B[22m\n",
@@ -59,31 +59,31 @@ describe("report()", () => {
 				],
 			},
 			{
-				FailPathLoc: "tests/reporter/sophiAssertions.fixture.js:11:3",
+				FailPathLoc: "tests/integration/fixture.fail.js:16:2",
 				TestTitle: "Test title 3",
 				AssertionZone: [
-					INDENT + `    10:    "Test title 3"() {`.dim + NL,
-					INDENT + ("  > ".red + "11:       check_Eq(230, 13199)").thick + NL,
-					INDENT + `    12:    },`.dim + NL,
+					INDENT + `    15:    await Promise.resolve(1)`.dim + NL,
+					INDENT + ("  > ".red + "16:    check_is(230, 13199)").thick + NL,
+					INDENT + `    17: })`.dim + NL,
 				],
 				ErrorDiagnosticsSophi: [
-					INDENT + "Expected to be Deeply Equal".yellow.thick + NL,
+					INDENT + "Expected to be the same (Object.is)".yellow.thick + NL,
 					INDENT + NL,
 					INDENT + INDENT + `${"2".underline}3${"0".underline}`.red + TABLE_SEP + `${"1".underline}3${"1".underline}${"99".underline}`.green + NL,
 				],
 			},
 			{
-				FailPathLoc: "tests/reporter/nonSophiAssertion.fixture.js:5:13",
+				FailPathLoc: "tests/integration/fixture.fail.nonSophiAssert.js:5:12",
 				TestTitle: "Example test title",
 				AssertionZone: [
-					INDENT + `    4:    "Example test title"() {`.dim + NL,
-					INDENT + ("  > ".red + "5:       expect(1).toBe(2)").thick + NL,
-					INDENT + `    6:    },`.dim + NL,
+					INDENT + `    4: test("Example test title", () => {`.dim + NL,
+					INDENT + ("  > ".red + "5:    expect(1).toBe(2)").thick + NL,
+					INDENT + `    6: })`.dim + NL,
 				],
 			},
 		]
 
-		const logs = await setup(suites)
+		const logs = await setup(testsFixtures)
 
 		let logsIdx = 0
 		let i = logsIdx
@@ -101,8 +101,8 @@ describe("report()", () => {
 
 		function check_PassedTests(logs, i) {
 
-			expect(logs[++i]).toBe(passedTest("tests/reporter/passedTests.fixture.js", "2 Tests"))
-			expect(logs[++i]).toBe(passedTest("tests/reporter/passedTests2.fixture.js", "1 Test"))
+			expect(logs[++i]).toBe(passedTest("tests/integration/fixture.pass.mixedAssert.js", "2 Tests"))
+			expect(logs[++i]).toBe(passedTest("tests/integration/fixture.pass.js", "1 Test"))
 
 			return i
 
@@ -121,7 +121,7 @@ describe("report()", () => {
 
 				check_PathAndLoc(FailPathLoc)
 				check_nl({ indent: 0 })
-				check_ErrMessage(TestTitle)
+				check_testTitle(TestTitle)
 				check_nl({ indent: 1 })
 				check_AssertionZone(AssertionZone)
 				check_nl({ indent: 1 })
@@ -154,32 +154,24 @@ describe("report()", () => {
 				expect(rec).toBe(exp)
 			}
 
-			function check_ErrMessage(TestTitle) {
+			function check_testTitle(TestTitle) {
 				rec = logs[++i]
 				exp = INDENT + TestTitle.yellow.thick + NL
 				expect(rec).toBe(exp)
 			}
 
 			function check_AssertionZone(AssertionZone) {
-				checkMultLines(AssertionZone)
+				i = checkMultLines(AssertionZone, logs, i)
 			}
 
 			function check_ErrDiagnosticsSophi(ErrorDiagnosticsSophi) {
-				checkMultLines(ErrorDiagnosticsSophi)
+				i = checkMultLines(ErrorDiagnosticsSophi, logs, i)
 			}
 
 			function check_ErrStackSophi() {
 				rec = logs[++i].startsWith(INDENT + "\x1B[2mat ")
 				exp = true
 				expect(rec).toBe(exp)
-			}
-
-			function checkMultLines(expectedLines) {
-				const expectedLinesLength = expectedLines.length
-				rec = logs.slice(++i, i += expectedLinesLength)
-				exp = expectedLines
-				expect(rec).toEqual(exp)
-				i--
 			}
 
 			function check_GenericError() {
@@ -197,27 +189,44 @@ describe("report()", () => {
 			let rec = logs[++i].startsWith(" Summary ".inverse)
 			let exp = true
 			expect(rec).toBe(exp)
-
 			expect(logs[++i]).toBe(NL)
 
+			const todoMsgs = [
+				"   \x1B[34m🖊️ Todo tests: \x1B[39m\n" ,
+				"      \x1B[34m● tests/integration/fixture.todo.js\x1B[39m\n",
+				"         \x1B[34m◻ Test title\x1B[39m\n",
+				"\n",
+			]
+
+			i = checkMultLines(todoMsgs, logs, i)
+
 			rec = logs[++i]
-			exp = INDENT + "   Files  ".dim + `2 Failed`.red + SEP + `2 Passed`.green + SEP + `4 Total` + NL
+			exp = INDENT + "   Files  ".dim + `2 Failed`.red + SEP + `2 Passed`.green + SEP + `1 Todo`.blue + SEP + `5 Total` + NL
 			expect(rec).toBe(exp)
 
 			rec = logs[++i]
-			exp = INDENT + "   Tests  ".dim + `4 Failed`.red + SEP + `3 Passed`.green + SEP + `7 Total` + NL
+			exp = INDENT + "   Tests  ".dim + `4 Failed`.red + SEP + `3 Passed`.green + SEP + `1 Todo`.blue + SEP + `8 Total` + NL
 			expect(rec).toBe(exp)
 
 			rec = logs[++i].startsWith(INDENT + "Duration".dim + "  ")
 			exp = true
 			expect(rec).toBe(exp)
 		}
-	})
 
+
+		function checkMultLines(expectedLines, logs, i) {
+			const expectedLinesLength = expectedLines.length
+			const rec = logs.slice(++i, i += expectedLinesLength)
+			const exp = expectedLines
+			expect(rec).toEqual(exp)
+			i--
+			return i
+		}
+	})
 
 	test("prints diffs correctly", async () => {
 
-		const suites = ["./sophiAssertionsDiffs.fixture.js"]
+		const suites = ["./fixture.fail.diffs.js"]
 
 		const logs = await setup(suites, { printDiffs: true })
 
@@ -253,73 +262,68 @@ describe("report()", () => {
 		cleanup()
 	})
 
+	test("files with no tests: prints correct info", async () => {
 
-	async function setup(fixturesPaths, reportOpts) {
+		const fixt = [ "./fixture.noTests.js"]
+		let logs = await setup(fixt)
 
-		const rootDir = process.cwd()
-		// results :: [fileSuitePath, contents, tests, fileSuitePath, contents...]
-		const results = await Promise.all(fixturesPaths.flatMap(path =>
-			[
-				Promise.resolve(pathFromRootDir(path, rootDir)),
-				readFile(new URL(path, import.meta.url), "utf8"),
-				import(path),
-			],
-		))
+		const rec = logs.join("")
 
-		let suite = []
-		let fileSuite
-		for (let i = 0; i < results.length; i++) {
-			const x = results[i]
-			if (i % 3 === 0) {
-				fileSuite = {}
-				fileSuite.file_path = x
-			}
-			if (i % 3 === 1) {
-				fileSuite.file_contents = x
-			}
-			if (i % 3 === 2) {
-				fileSuite.tests = x.tests
-				suite.push(fileSuite)
-			}
+		const exp = [
+			"\n",
+			"   \x1B[34m🧟‍♀️Files with no tests: \x1B[39m\n",
+			"      🧟‍♂️\x1B[34mtests/integration/fixture.noTests.js\x1B[39m\n",
+			"\n",
+			"   \x1B[2m   Files  \x1B[22m0 Total\n",
+			"   \x1B[2m   Tests  \x1B[22m0 Total\n",
+		].join("")
+
+		expect(rec).toContain(exp)
+	})
+
+	test("files with skipped files: prints correct info", async () => {
+
+		const fixt = [ "./fixture.skippedFile.js"]
+		let logs = await setup(fixt)
+
+		const rec = logs.join("")
+
+		const exp = [
+			"\n",
+			"   \x1B[2m   Files  \x1B[22m\x1B[33m1 Skipped\x1B[39m\x1B[2m | \x1B[22m1 Total\n",
+			"   \x1B[2m   Tests  \x1B[22m\x1B[33m1 Skipped\x1B[39m\x1B[2m | \x1B[22m1 Total\n",
+		].join("")
+
+		expect(rec).toContain(exp)
+	})
+
+
+	async function setup(testFilePath_s, reportOpts) {
+
+		testFilePath_s = testFilePath_s.map(p => absPathFromRel(import.meta.url, p))
+
+		const [suite, fileContent] = await Promise.all([
+			run(testFilePath_s),
+			getFilesAndContents(testFilePath_s),
+		])
+
+		for (const { path, content } of fileContent) {
+			suite.suites.get(path).file_content = content
 		}
 
-		const suiteResults = run(suite)
-
 		const origStdOutWrite = process.stdout.write
-
 		let logs = []
-
 		process.stdout.write = function myWrite(x) {
 			logs.push(x)
 		}
-
 		process.stdout._$cols = process.stdout.columns
 		process.stdout.columns = 160
 
-		report(suiteResults, reportOpts)
+		report(suite, reportOpts)
 
 		process.stdout.write = origStdOutWrite
 
 		return logs
-
-
-		function pathFromRootDir(relPath, rootPath) {
-
-			const rootDir = rootPath.split(path.sep).pop()
-			const __dirname = path.dirname(fileURLToPath(import.meta.url))
-
-			let foundRootDir = false
-			let pathToCurrModule = []
-			for (const dir of __dirname.split(path.sep)) {
-				if (foundRootDir) {
-					pathToCurrModule.push(dir)
-					continue
-				}
-				if (dir === rootDir) foundRootDir = true
-			}
-
-			return path.join(...pathToCurrModule, relPath)
-		}
 	}
 
 	function cleanup() {
@@ -370,3 +374,13 @@ test("toHuman()", () => {
 	exp = "days"
 	expect(rec).toEqual(exp)
 })
+
+
+async function getFilesAndContents(absPaths) {
+	return Promise.all(absPaths.map(async path => {
+		return {
+			path,
+			content: await readFile(path, "utf8"),
+		}
+	}))
+}

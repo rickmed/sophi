@@ -1,10 +1,10 @@
-import { it as test, expect, describe as group } from "vitest"
+import { it, expect, describe as group } from "vitest"
 import { setColorsProto, restoreColorsProto, ink } from "../source/colors/pure.js"
 
 
 group("Proxy forwards correctly to original Object.Prototype's: ", () => {
 
-	test("methods", () => {
+	it("methods", () => {
 
 		setColorsProto()
 
@@ -15,7 +15,7 @@ group("Proxy forwards correctly to original Object.Prototype's: ", () => {
 	})
 
 
-	test("properties", () => {
+	it("properties", () => {
 
 		setColorsProto()
 		const str = "a"
@@ -31,7 +31,7 @@ group("Proxy forwards correctly to original Object.Prototype's: ", () => {
 })
 
 
-test("setColorsProto() and restoreColorsProto() are idempotent", () => {
+it("setColorsProto() and restoreColorsProto() are idempotent", () => {
 
 	setColorsProto()
 	setColorsProto()
@@ -47,12 +47,12 @@ test("setColorsProto() and restoreColorsProto() are idempotent", () => {
 
 group("mehod based api works", () => {
 
-	test("supported style returns correct ansi", () => {
+	it("supported style returns correct ansi", () => {
 		expect(ink.red("A")).toBe("\u001B[31mA\u001B[39m")
 	})
 
 
-	test("throws if non supported style code", () => {
+	it("throws if non supported style code", () => {
 		const errMsg = "sophi/colors: style not supported"
 		expect(() => ink.nonExistent("A")) .toThrowError(errMsg)
 	})
