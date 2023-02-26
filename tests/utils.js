@@ -8,18 +8,17 @@ export function fn3() {}
 export function fn4() {}
 export function fn5() {}
 
-export function toSuiteSchema({runnable, skipped, todos, justUsed, testCount}) {
+export function toFileSuiteSchema({runnable, skip, todo, oneOrJustUsed, n_Tests}) {
 
-	let suite = {
-		justUsed: justUsed === undefined ? false: true,
+	let fileSuite = {
 		clusters: {
 			runnable: runnable ? new Map(runnable) : new Map(),
-			skipped: skipped ? new Map(skipped) : new Map(),
-			todos: todos ? new Map(todos) : new Map(),
+			skip: skip ? new Map(skip) : new Map(),
+			todo: todo ? new Map(todo) : new Map(),
 		},
+		oneOrJustUsed: oneOrJustUsed || false,
+		n_Tests,
 	}
 
-	if (testCount !== undefined) suite.testCount = testCount
-
-	return suite
+	return fileSuite
 }

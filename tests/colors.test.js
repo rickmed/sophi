@@ -1,21 +1,21 @@
-import { it, expect, describe as group } from "vitest"
+import { group, test, check_is, check_Throws } from "../source/index.js"
 import { setColorsProto, restoreColorsProto, ink } from "../source/colors/pure.js"
 
 
 group("Proxy forwards correctly to original Object.Prototype's: ", () => {
 
-	it("methods", () => {
+	test("methods", () => {
 
 		setColorsProto()
 
 		// eslint-disable-next-line no-prototype-builtins
-		expect("a".hasOwnProperty("some prop")).toBe(false)
+		check_is("a".hasOwnProperty("some prop"), false)
 
 		restoreColorsProto()
 	})
 
 
-	it("properties", () => {
+	test("properties", () => {
 
 		setColorsProto()
 		const str = "a"
@@ -23,7 +23,7 @@ group("Proxy forwards correctly to original Object.Prototype's: ", () => {
 		const origStrCtor = strProto.constructor
 		delete strProto.constructor
 
-		expect(str.constructor).toEqual(Object)
+		check_is(str.constructor, Object)
 
 		strProto.constructor = origStrCtor
 		restoreColorsProto()
@@ -31,29 +31,29 @@ group("Proxy forwards correctly to original Object.Prototype's: ", () => {
 })
 
 
-it("setColorsProto() and restoreColorsProto() are idempotent", () => {
+test("setColorsProto() and restoreColorsProto() are idempotent", () => {
 
 	setColorsProto()
 	setColorsProto()
 
-	expect("A".red).toBe("\u001B[31mA\u001B[39m")
+	check_is("A".red, "\u001B[31mA\u001B[39m")
 
 	restoreColorsProto()
 	restoreColorsProto()
 
-	expect("a".red).toBe(undefined)
+	check_is("a".red, undefined)
 })
 
 
 group("mehod based api works", () => {
 
-	it("supported style returns correct ansi", () => {
-		expect(ink.red("A")).toBe("\u001B[31mA\u001B[39m")
+	test("supported style returns correct ansi", () => {
+		check_is(ink.red("A"), "\u001B[31mA\u001B[39m")
 	})
 
 
-	it("throws if non supported style code", () => {
-		const errMsg = "sophi/colors: style not supported"
-		expect(() => ink.nonExistent("A")) .toThrowError(errMsg)
+	test("throws if non supported style code", () => {
+		const err = check_Throws(() => ink.nonExistent("A"))
+		check_is(err.message, "sophi/colors: style not supported")
 	})
 })

@@ -1,81 +1,82 @@
-import { describe as group, it, expect } from "vitest"
-import { deepDiff, empty } from "../source/deepDiff"
+import { group, test, check_is, check_Eq } from "../source/index.js"
+import { deepDiff, empty } from "../source/deepDiff.js"
 
 
 const deepDiffFN = "deepDiff() > "
 
-it(deepDiffFN + "returns false for Equal structures", () => {
+test(deepDiffFN + "returns false for Equal structures", () => {
 
 	let rec = deepDiff(null, null)
-	expect(rec).toBe(false)
+	check_is(rec, false)
 
 	rec = deepDiff(undefined, undefined)
-	expect(rec).toBe(false)
+	check_is(rec, false)
 
 	rec = deepDiff(NaN, NaN)
-	expect(rec).toBe(false)
+	check_is(rec, false)
 
 	rec = deepDiff(0, 0)
-	expect(rec).toBe(false)
+	check_is(rec, false)
 
 	rec = deepDiff("a", "a")
-	expect(rec).toBe(false)
+	check_is(rec, false)
 
 	rec = deepDiff(false, false)
-	expect(rec).toBe(false)
+	check_is(rec, false)
 
 	rec = deepDiff(9n, 9n)
-	expect(rec).toBe(false)
+	check_is(rec, false)
 
 	const fn = () => {}
 	rec = deepDiff(fn, fn)
-	expect(rec).toBe(false)
+	check_is(rec, false)
 
 	rec = deepDiff(new Set([1]), new Set([1]))
-	expect(rec).toBe(false)
+	check_is(rec, false)
 
 	rec = deepDiff([1, 2], [1, 2])
-	expect(rec).toBe(false)
+	check_is(rec, false)
 
 	rec = deepDiff(new Map([["1", 1]]), new Map([["1", 1]]))
-	expect(rec).toBe(false)
+	check_is(rec, false)
 
 	rec = deepDiff({k1: "a"}, {k1: "a"})
-	expect(rec).toBe(false)
+	check_is(rec, false)
 
-	rec = deepDiff(new Date(), new Date())
-	expect(rec).toBe(false)
+	const date = new Date()
+	rec = deepDiff(date, date)
+	check_is(rec, false)
 
 	rec = deepDiff(/a/, /a/)
-	expect(rec).toBe(false)
+	check_is(rec, false)
 })
 
 group(deepDiffFN + "returns correct diff for NON Equal structures", () => {
 
-	it("different constructors", () => {
+	test("different constructors", () => {
 		let rec = deepDiff(/a/, [1])
-		expect(rec).toEqual([/a/, [1]])
+		check_Eq(rec, [/a/, [1]])
 	})
 
 
-	it("Date", () => {
+	test("Date", () => {
 
 		const date1 = new Date("1970-01-02")
 		const date2 = new Date("1970-01-03")
 
 		let rec = deepDiff(date1, date2)
-		expect(rec).toEqual([date1, date2])
+		check_Eq(rec, [date1, date2])
 	})
 
 
-	it("RegExp", () => {
+	test("RegExp", () => {
 
 		let rec = deepDiff(/a/, /b/)
-		expect(rec).toEqual([/a/, /b/])
+		check_Eq(rec, [/a/, /b/])
 	})
 
 
-	it("Set", () => {
+	test("Set", () => {
 
 		const obj = { p1: "k1" }
 		const obj2 = { p3: "k3" }
@@ -88,11 +89,11 @@ group(deepDiffFN + "returns correct diff for NON Equal structures", () => {
 		const diff_b = new Set([5, { p2: "k2" }, "hey"])
 		const exp = [diff_a, diff_b]
 
-		expect(rec).toEqual(exp)
+		check_Eq(rec, exp)
 	})
 
 
-	it("Map", () => {
+	test("Map", () => {
 
 		const fn = () => { }
 		const sym = Symbol()
@@ -130,11 +131,11 @@ group(deepDiffFN + "returns correct diff for NON Equal structures", () => {
 			]),
 		}
 
-		expect(rec).toEqual(exp)
+		check_Eq(rec, exp)
 	})
 
 
-	it("Array", () => {
+	test("Array", () => {
 
 		let a = [0, [2], { k1: "a" }, 5]
 		let b = [0, 4, { k1: "b" }]
@@ -155,7 +156,7 @@ group(deepDiffFN + "returns correct diff for NON Equal structures", () => {
 			]),
 		}
 
-		expect(rec).toEqual(exp)
+		check_Eq(rec, exp)
 
 		a = [0]
 		b = [0, 2]
@@ -168,11 +169,11 @@ group(deepDiffFN + "returns correct diff for NON Equal structures", () => {
 			]),
 		}
 
-		expect(rec).toEqual(exp)
+		check_Eq(rec, exp)
 	})
 
 
-	it("(Deep) Object", () => {
+	test("(Deep) Object", () => {
 
 		const fn_p1 = () => 1
 		const fn_p2 = () => 2
@@ -238,11 +239,11 @@ group(deepDiffFN + "returns correct diff for NON Equal structures", () => {
 			]),
 		}
 
-		expect(rec).toEqual(exp)
+		check_Eq(rec, exp)
 	})
 
 
-	it("Unsuported Constructors", () => {
+	test("Unsuported Constructors", () => {
 
 		function ObjCtor() { }
 
@@ -252,6 +253,6 @@ group(deepDiffFN + "returns correct diff for NON Equal structures", () => {
 		const rec = deepDiff(a, b)
 		const exp = [a, b]
 
-		expect(rec).toEqual(exp)
+		check_Eq(rec, exp)
 	})
 })

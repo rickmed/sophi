@@ -7,5 +7,5 @@ group("a", () => {
 })
 
 group("b", () => {
-	test.just("test b", fn1)
+	test.one("test b", fn1)
 })

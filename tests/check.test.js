@@ -1,4 +1,4 @@
-import { describe, it, expect as expect_ } from "vitest"
+import { describe, it, check_is as _check_is_, check_Eq as _check_Eq_ } from "../source/index.js"
 import {
 	check_Eq, OP_EQ, OP_EQ_MSG,
 	check_NotEq, OP_NOTEQ, OP_NOTEQ_MSG,
@@ -14,24 +14,25 @@ function _assertCheckErr(err, rec, exp, opID, opMsg, usrMsg) {
 
 	const errKs = new Set(Object.getOwnPropertyNames(err))
 	const expKs = new Set(["code", "op", "message", "userMsg", "received", "expected", "stack"])
-	expect_(errKs).toEqual(expKs)
-	expect_(err.code).toEqual(ERR_SOPHI_CHECK)
-	expect_(typeof err.stack).toEqual("string")
 
-	expect_(err.received).toEqual(rec)
-	expect_(err.received).toBe(rec)
-	expect_(err.expected).toEqual(exp)
-	expect_(err.expected).toBe(exp)
+	_check_Eq_(errKs, expKs)
+	_check_Eq_(err.code, ERR_SOPHI_CHECK)
+	_check_Eq_(typeof err.stack, "string")
 
-	expect_(err.op).toEqual(opID)
+	_check_Eq_(err.received, rec)
+	_check_is_(err.received, rec)
+	_check_Eq_(err.expected, exp)
+	_check_is_(err.expected, exp)
+
+	_check_Eq_(err.op, opID)
 
 	if (usrMsg) {
-		expect_(err.userMsg).toEqual(true)
-		expect_(err.message).toEqual(usrMsg)
+		_check_Eq_(err.userMsg, true)
+		_check_Eq_(err.message, usrMsg)
 	}
 	else {
-		expect_(err.userMsg).toEqual(false)
-		expect_(err.message).toEqual(opMsg)
+		_check_Eq_(err.userMsg, false)
+		_check_Eq_(err.message, opMsg)
 	}
 
 }
@@ -128,7 +129,7 @@ describe("check_Throws()", () => {
 	it("should return the thrown error by the passed function", () => {
 		const throwErr = {}
 		const err = check_Throws(() => { throw throwErr })
-		expect_(err).toBe(throwErr)
+		_check_is_(err, throwErr)
 	})
 
 	it("check function should throw correctly", () => {
@@ -155,16 +156,16 @@ describe("check_NotThrows()", () => {
 
 			const errKs = new Set(Object.getOwnPropertyNames(err))
 			const expKs = new Set(["code", "op", "message", "userMsg", "received", "expected", "stack"])
-			expect_(errKs).toEqual(expKs)
-			expect_(err.code).toEqual(ERR_SOPHI_CHECK)
-			expect_(typeof err.stack).toEqual("string")
+			_check_Eq_(errKs, expKs)
+			_check_Eq_(err.code, ERR_SOPHI_CHECK)
+			_check_Eq_(typeof err.stack, "string")
 
-			expect_(err.received).toEqual(throwErr)
-			expect_(err.received).toBe(throwErr)
-			expect_(err.expected).toBe(null)
+			_check_Eq_(err.received, throwErr)
+			_check_is_(err.received, throwErr)
+			_check_is_(err.expected, undefined)
 
-			expect_(err.op).toEqual(OP_NOTTHROWS)
-			expect_(err.message).toEqual(OP_NOTTHROWS_MSG)
+			_check_Eq_(err.op, OP_NOTTHROWS)
+			_check_Eq_(err.message, OP_NOTTHROWS_MSG)
 		}
 	})
 })

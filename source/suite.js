@@ -1,154 +1,165 @@
-import { relPathFromProjectRoot, SOPHI } from "./utils.js"
+import { SOPHI } from "./utils.js"
 
 const SEP = " @$oph! "
-const C = {
-	JUST: 0,
-	ONLY: 1,
-	SKIP: 2,
-	TODO: 3,
+const MOD = {
+	ONE: 1,
+	JUST: 2,
+	SKIP: 3,
 }
 
-export class Suite {
-	constructor(testFilePath) {
-
-		if (testFilePath !== undefined) {
-			this.testFilePath = new URL(testFilePath).pathname
-		}
-
-		this.initSuite()
+class Suite {
+	constructor() {
+		this.#initSuite()
+		this.groupPath = []
 	}
 
-	initSuite() {
+	#initSuite() {
+		this.#resetSuite()
+	}
+
+	#resetSuite(oneOrJustUsed = false) {
 		this.suite = {
 			clusters: {
-				runnable: new Map(), // id -> {fn: testFn}
-				skipped: new Map(), // id -> empty object for future metadata (like file location)
-				todos: new Map(),   // idem
+				runnable: new Map(),
+				skip: new Map(),
+				todo: new Map(),
+				just: new Map(),
 			},
-			justUsed: false,   // since just usage is across files, suite of all fileSuites checks this flag
-			testCount: 0,
-		}
-		this.group_path = []
-		this.onlyOrJustUsed = false
-	}
-
-	markOnlyUsed() {
-		this.onlyOrJustUsed = true
-	}
-
-	markJustUsed() {
-		this.onlyOrJustUsed = true
-		this.suite.justUsed = true
-	}
-
-	addTest(testTitle, testFn, modifier = null, path = null) {
-
-		let { group_path, suite: { clusters: { runnable, skipped, todos } } } = this
-
-		group_path = path || group_path
-
-		const testID = buildTestID(group_path.map(s => s.groupName), testTitle)
-
-		if (runnable.has(testID) || skipped.has(testID) || todos.has(testID)) {
-			throwDuplicateName(testID, globalThis[SOPHI].testFilePath)
-		}
-
-		this.suite.testCount++
-
-		if (modifier === C.TODO) {
-			todos.set(testID, {})
-			return
-		}
-
-		if (modifier === C.SKIP || inPath(C.SKIP)) {
-			skipped.set(testID, {})
-			return
-		}
-
-		// last test.just wins
-		if (modifier === C.JUST) {
-			this.moveAllRunnableToSkipped()
-			this.markJustUsed()
-			runnable.set(testID, { fn: testFn })
-			return
-		}
-
-		// last test.only wins
-		if (modifier === C.ONLY) {
-			this.moveAllRunnableToSkipped()
-			this.markOnlyUsed()
-			runnable.set(testID, { fn: testFn })
-			return
-		}
-
-		if (this.onlyOrJustUsed) {
-			skipped.set(testID, {})
-			return
-		}
-
-		runnable.set(testID, { fn: testFn })
-
-
-		function inPath(_modifier) {
-			for (const { modifier } of group_path) {
-				if (modifier === _modifier) return true
-			}
-			return false
-		}
-
-	}
-
-	moveAllRunnableToSkipped() {
-		let { suite: { clusters: { runnable, skipped } } } = this
-
-		for (const [test_id, test] of runnable) {
-			runnable.delete(test_id)
-			delete test.fn
-			skipped.set(test_id, test)
+			oneOrJustUsed,  // since just usage is across files, collect filters fileSuites based on this
 		}
 	}
 
 	addGroup(groupName, fn, modifier = null) {
 
-		if (modifier === C.JUST) {
-			this.moveAllRunnableToSkipped()
+		if (modifier === MOD.ONE) {
+			this.#resetSuite()
 		}
 
-		if (modifier === C.ONLY) {
-			this.moveAllRunnableToSkipped()
+		if (modifier === MOD.JUST) {
+			const {clusters} = this.suite
+			clusters.runnable = new Map()
+			clusters.skip = new Map()
+			clusters.todo = new Map()
 		}
 
-		this.group_path.push({ groupName, modifier })
+		this.groupPath.push({ groupName, modifier })
 
 		fn()
 
-		if (modifier === C.JUST) {
-			this.markJustUsed()
-		}
-		if (modifier === C.ONLY) {
-			this.markOnlyUsed()
+		if (modifier === MOD.ONE) {
+			this.suite.oneOrJustUsed = "one"
 		}
 
-		this.group_path.pop()
+		if (modifier === MOD.JUST) {
+			this.suite.oneOrJustUsed = "just"
+		}
+
+		this.groupPath.pop()
+	}
+
+	addRegularTest(title, fn) {
+
+		if (this.isModLowestParent(MOD.ONE)) {
+			this.#addTest({ title, fn })
+			return
+		}
+
+		if (this.isModLowestParent(MOD.JUST)) {
+			this.addJustTest(title, fn)
+			return
+		}
+
+		if (this.isModLowestParent(MOD.SKIP)) {
+			this.addSkipTest(title)
+			return
+		}
+
+		this.#addTest({ title, fn })
+	}
+
+	addOneTest(title, fn) {
+		this.#resetSuite("one")
+		this.#addTest({ title, fn })
+	}
+
+	addJustTest(title, fn) {
+		if (this.suite.oneOrJustUsed === "one") {
+			return
+		}
+		if (this.suite.oneOrJustUsed === false) {
+			this.#resetSuite("just")
+		}
+		this.#addTest({ title, fn, clusterK: "just" })
+	}
+
+	addSkipTest(title) {
+		if (this.suite.oneOrJustUsed) {
+			return
+		}
+		this.#addTest({ title, clusterK: "skip" })
+	}
+
+	addTodoTest(title) {
+		if (this.suite.oneOrJustUsed || this.isModLowestParent(MOD.ONE) || this.isModLowestParent(MOD.JUST) || this.isModLowestParent(MOD.SKIP)) {
+			return
+		}
+		this.#addTest({ title, clusterK: "todo" })
+	}
+
+	addObjAPITest(opts) {
+		this.#addTest(opts)
+	}
+
+	#addTest({ title, fn, groupPath = this.groupPath, clusterK = "runnable" } = {}) {
+
+		const test_id = this.#testID(title, groupPath)
+
+		const obj = clusterK === "todo" || clusterK === "skip" ? ({}) : ({fn: fn})
+
+		this.suite.clusters[clusterK].set(test_id, obj)
+	}
+
+	#testID(testTitle, groupPath) {
+		let { suite: { clusters: { runnable, skip, todo, just } } } = this
+
+		const testID = buildTestID(groupPath.map(s => s.groupName), testTitle)
+
+		if (runnable.has(testID) || skip.has(testID) || todo.has(testID) || just.has(testID)) {
+			throwDuplicateName(testID, globalThis[SOPHI].testFilePath)
+		}
+
+		return testID
 	}
 
 	pullSuite() {
 		const suite = this.suite
-		this.initSuite()
+
+		this.#initSuite()
+		let n_Tests = 0
+		const {clusters} = suite
+		for (const clusterK in clusters) {
+			n_Tests += clusters[clusterK].size
+		}
+		suite.n_Tests = n_Tests
+
+		if (clusters.just.size > 0) {
+			clusters.runnable = clusters.just
+		}
+
+		delete clusters.just
+
 		return suite
 	}
 
-	group(groupName, fn) {
-		this.addGroup(groupName, fn)
-	}
-
-	test(title, fn) {
-		this.addTest(title, fn)
+	isModLowestParent(mod) {
+		const {groupPath} = this
+		for (let i = groupPath.length - 1; i >= 0; i--) {
+			if (groupPath[i].modifier === mod) return true
+		}
+		return false
 	}
 }
 
-// Suite.prototype.group = group
-// Suite.prototype.test = test
 
 export function buildTestID(path, title) {
 
@@ -165,20 +176,19 @@ export function extractTestTitleAndGroups(testID) {
 	const testTitle = arr[arr.length - 1]
 	arr.pop()
 	const groups = arr
-	return {testTitle, groups}
+	return { testTitle, groups }
 }
 
-export function throwDuplicateName(testID, file_path) {
-	file_path = relPathFromProjectRoot(file_path)
+export function throwDuplicateName(testID, filePath) {
 	const name = testID.split(SEP).map(t => `"${t}"`).join(" ▶ ")
-	throw new Error(`Duplicate test name ${name} in same file: ${file_path}`)
+	throw new Error(`Duplicate test name ${name} in same file: ${filePath}`)
 }
 
 
 const collector = new Suite()
-const globSophi = {collector}
+const globSophi = { collector }
 
-// since ESM modules are cached, this should be set it up once
+// since ESM modules are cached so this should eval once
 globalThis[SOPHI] = globSophi
 
 
@@ -186,42 +196,52 @@ export function group(groupName, fn) {
 	collector.addGroup(groupName, fn)
 }
 
-group.just = (groupName, fn) => {
-	collector.addGroup(groupName, fn, C.JUST)
+function groupOne(groupName, fn) {
+	collector.addGroup(groupName, fn, MOD.ONE)
 }
 
-export const $$group = group.just
-
-group.only = (groupName, fn) => {
-	collector.addGroup(groupName, fn, C.ONLY)
+function groupJust(groupName, fn) {
+	collector.addGroup(groupName, fn, MOD.JUST)
 }
 
-group.skip = (groupName, fn) => {
-	collector.addGroup(groupName, fn, C.SKIP)
+function groupSkip(groupName, fn) {
+	collector.addGroup(groupName, fn, MOD.SKIP)
 }
+
+group.one = groupOne
+group.$$ = groupOne
+group.just = groupJust
+group.$ = groupJust
+group.skip = groupSkip
 
 
 export function test(title, fn) {
-	collector.addTest(title, fn)
+	collector.addRegularTest(title, fn)
 }
 
-test.just = (title, fn) => {
-	collector.addTest(title, fn, C.JUST)
+function testOne(title, fn) {
+	collector.addOneTest(title, fn)
 }
 
-export const $test = test.just
-
-test.only = (title, fn) => {
-	collector.addTest(title, fn, C.ONLY)
+function testJust(title, fn) {
+	collector.addJustTest(title, fn)
 }
 
-test.skip = (title, fn) => {
-	collector.addTest(title, fn, C.SKIP)
+function testSkip(title, fn) {
+	collector.addSkipTest(title, fn)
 }
 
-test.todo = (title) => {
-	collector.addTest(title, null, C.TODO)
+function testTodo(title) {
+	collector.addTodoTest(title)
 }
+
+test.one = testOne
+test.$$ = testOne
+test.just = testJust
+test.$ = testJust
+test.skip = testSkip
+test.todo = testTodo
+
 
 export {
 	group as describe,
@@ -249,7 +269,7 @@ export function objToSuite(objSuite) {
 			const v = obj[k]
 
 			if (typeof v === "function") {
-				suite.addTest(k, v, null, path)
+				suite.addObjAPITest({title: k, fn: v, groupPath: path})
 				continue
 			}
 			else {

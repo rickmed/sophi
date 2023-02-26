@@ -8,7 +8,20 @@ group("group1", () => {
 })
 
 test("Test title 2", () => {
-	check_Eq({k1: 10, k3: {kk3: true}}, {k1: 11, k2: "k2"}, "user message")
+	
+	const rec = {
+		k1: 10,
+		k3: {
+			kk3: true,
+		},
+	}
+
+	const exp = {
+		k1: 11,
+		k2: "k2",
+	}
+
+	check_Eq(rec, exp, "user message")
 })
 
 test("Test title 3", async () => {

@@ -1,7 +1,7 @@
 import { dequal as isDeepEqual } from "dequal"
 
 
-export const ERR_SOPHI_CHECK = "ERR_SOPHI_CHECK"
+export const ERR_SOPHI_CHECK = "ERR_ASSERTION_SOPHI"
 
 /*
 {
@@ -71,10 +71,22 @@ export const OP_THROWS_MSG = "Expected function to Throw"
 export function check_Throws(fn, userMsg) {
 	try {
 		fn()
-		throw _CheckErr(OP_THROWS, userMsg, undefined, undefined, OP_THROWS_MSG)
 	} catch (e) {
 		return e
 	}
+	throw _CheckErr(OP_THROWS, userMsg, undefined, undefined, OP_THROWS_MSG)
+}
+
+export const OP_THROWS_ASYNC = "Throws Async"
+export const OP_THROWS_ASYNC_MSG = "Expected function to Throw Async"
+
+export async function check_ThrowsAsync(fn, userMsg) {
+	try {
+		await fn()
+	} catch (e) {
+		return e
+	}
+	throw _CheckErr(OP_THROWS_ASYNC, userMsg, undefined, undefined, OP_THROWS_ASYNC_MSG)
 }
 
 
@@ -85,6 +97,6 @@ export function check_NotThrows(fn, userMsg) {
 	try {
 		fn()
 	} catch (e) {
-		throw _CheckErr(OP_NOTTHROWS, userMsg, e, null, OP_NOTTHROWS_MSG)
+		throw _CheckErr(OP_NOTTHROWS, userMsg, e, undefined, OP_NOTTHROWS_MSG)
 	}
 }

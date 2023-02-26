@@ -1,54 +1,95 @@
-import { SOPHI } from "./utils.js"
-import { objToSuite, throwDuplicateName, Suite } from "./suite.js"
+import { SOPHI, relPathFromProjectRoot } from "./utils.js"
+import { objToSuite, throwDuplicateName } from "./suite.js"
 
-export async function run(testFilePath_s) {
+export async function run(absFilePath_s) {
 
-	// ./suite.js should have set globalThis[SOPHI] while imported
+	// ./suite.js should have set globalThis[SOPHI] while imported (above)
+	const projectRoot = process.cwd()
 	const globSophi = globalThis[SOPHI]
-	globSophi.projectRoot = process.cwd()
+	globSophi.projectRoot = projectRoot
 
-	const suites = await collectTests(testFilePath_s)
-	return await execTests(suites)
+	let suite = {
+		duration: {
+			collect: undefined,
+			tests: undefined,
+		},
+		oneOrJustUsed: false,
+		suites: undefined,
+	}
+
+	const fileSuite_s = await collectSuites(absFilePath_s)
+	suite.suites = fileSuite_s
+	await execTests(suite)
+	return suite
 
 
-	async function collectTests(testFilePath_s) {
+	async function collectSuites(absFilePath_s) {
 
-		const suites = new Map()
+		const startTime = Date.now()
 
+		let fileSuite_s = new Map()
 		const {collector} = globSophi
 
-		for (const filePath of testFilePath_s) {
+		for (const absfilePath of absFilePath_s) {
+			const filePath = relPathFromProjectRoot(absfilePath)
 
-			// used in suite.js -> throwDuplicateName
+			// for suite.js to throw if duplicate test name in same file
 			globSophi.testFilePath = filePath
 
-			// collects tests while file is evaluated (imported)
-			const exports = await import(filePath)
+			const exports = await import(absfilePath)
 			let fileSuite = collector.pullSuite()
-
-			if (exports.tests?.constructor === Suite) {
-				fileSuite = exports.tests.suite
-			}
-
-			if (fileSuite.justUsed) {
-				suites.set(filePath, fileSuite)
-				return suites
-			}
 
 			if (typeof exports.tests?.addTest !== "function") {
 				const objAPI_suite = objToSuite(exports.tests)
 				mergeIntoCBSuite(objAPI_suite, fileSuite, filePath)
 			}
 
-			suites.set(filePath, fileSuite)
+			const fileSuiteOneOrJustUsed = fileSuite.oneOrJustUsed
+
+			delete fileSuite.oneOrJustUsed
+
+			if (fileSuiteOneOrJustUsed === "one") {
+
+				suite.oneOrJustUsed = "one"
+
+				fileSuite_s = new Map([
+					[filePath, fileSuite],
+				])
+
+				break
+			}
+
+			if (suite.oneOrJustUsed === "just") {
+				if (fileSuiteOneOrJustUsed === false) {
+					continue
+				}
+				else {  // fileSuiteOneOrJustUsed === "just"
+					fileSuite_s.set(filePath, fileSuite)
+					continue
+				}
+			}
+
+			if (fileSuiteOneOrJustUsed === "just") {
+
+				fileSuite_s = new Map([
+					[filePath, fileSuite],
+				])
+
+				suite.oneOrJustUsed = "just"
+				continue
+			}
+
+			fileSuite_s.set(filePath, fileSuite)
 		}
 
-		return suites
+		suite.duration.collect = Date.now() - startTime
+
+		return fileSuite_s
 
 
 		function mergeIntoCBSuite(objAPI_suite, CB_suite, filePath) {
 
-			const {clusters: {runnable}, testCount} = objAPI_suite
+			const {clusters: {runnable}, n_Tests} = objAPI_suite
 			const CB_clusters = CB_suite.clusters
 
 			for (const [testID, test] of runnable) {
@@ -58,7 +99,7 @@ export async function run(testFilePath_s) {
 				CB_clusters.runnable.set(testID, test)
 			}
 
-			CB_suite.testCount = CB_suite.testCount + testCount
+			CB_suite.n_Tests = CB_suite.n_Tests + n_Tests
 
 
 			function isInSuite(clusters, testID) {
@@ -70,11 +111,12 @@ export async function run(testFilePath_s) {
 		}
 	}
 
-	async function execTests(suites) {
+	async function execTests(suite) {
+
 		const startTime = Date.now()
 
-		for (const [, suite] of suites) {
-			for (const [, test] of suite.clusters.runnable) {
+		for (const [, fileSuite] of suite.suites) {
+			for (const [, test] of fileSuite.clusters.runnable) {
 				try {
 					const {fn} = test
 					if (fn.constructor.name === "AsyncFunction") {
@@ -90,9 +132,7 @@ export async function run(testFilePath_s) {
 			}
 		}
 
-		return {
-			suites,
-			duration: Date.now() - startTime,
-		}
+		suite.duration.tests = Date.now() - startTime
+		return suite
 	}
 }

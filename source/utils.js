@@ -1,5 +1,5 @@
 export const SOPHI = Symbol("sophi")
 
-export function relPathFromProjectRoot(filePath) {
-	return filePath.replaceAll(globalThis[SOPHI].projectRoot, "")
+export function relPathFromProjectRoot(filePath, projectRoot = process.cwd()) {
+	return filePath.replaceAll(projectRoot, "").slice(1)
 }

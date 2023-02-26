@@ -1,6 +1,6 @@
-import { expect } from "vitest"
+import { strict as assert } from "node:assert"
 import { test } from "../../source/suite.js"
 
 test("Example test title", () => {
-	expect(1).toBe(2)
+	assert.equal(1, 2)
 })

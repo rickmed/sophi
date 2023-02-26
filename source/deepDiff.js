@@ -64,42 +64,34 @@ function _diffDeepObj(a, b) {
 	fillDiffs(a, b, true)
 	fillDiffs(b, a, false)
 
-	fillDiffsSymbols(a, b, true)
-	fillDiffsSymbols(b, a, false)
-
 	return diffs.size > 0 ? ({type: "Object", diffs}) : false
 
-
 	function fillDiffs(a, b, from_a) {
-		for (const k in a) {
+
+		const Ks = sortKs(a)
+		for (const k of Ks) {
 			setKinDiff(a, b, k, from_a)
 		}
-	}
 
-	function fillDiffsSymbols(a, b, from_a) {
-		for (const k of Object.getOwnPropertySymbols(a)) {
-			setKinDiff(a, b, k, from_a)
-		}
-	}
+		function setKinDiff(a, b, k, from_a) {
+			const b_has_k = kIn(b, k)
 
-	function setKinDiff(a, b, k, from_a) {
-		const b_has_k = kIn(b, k)
-
-		if (!b_has_k) {
-			diffs.set(k, from_a ? [a[k], empty] : [empty, a[k]])
-		}
-
-		else {
-			const res = deepDiff(b[k], a[k])
-
-			if (res !== false) {
-				diffs.set(k, res)
+			if (!b_has_k) {
+				diffs.set(k, from_a ? [a[k], empty] : [empty, a[k]])
 			}
-		}
+
+			else {
+				const res = deepDiff(b[k], a[k])
+
+				if (res !== false) {
+					diffs.set(k, res)
+				}
+			}
 
 
-		function kIn(obj, k) {
-			return Object.hasOwn(obj, k)
+			function kIn(obj, k) {
+				return Object.hasOwn(obj, k)
+			}
 		}
 	}
 }
@@ -167,7 +159,9 @@ function _diffDeepMap(a, b) {
 
 	function fillDiffs(a, b, {from_a}) {
 
-		for (const [k, aVal] of a) {
+		const Ks = sortKs(a)
+		for (const k of Ks) {
+			const aVal = a.get(k)
 
 			const b_has_k = b.has(k)
 
@@ -186,4 +180,28 @@ function _diffDeepMap(a, b) {
 			}
 		}
 	}
+}
+
+
+function sortKs(x) {
+
+	let Ks
+
+	if (x.constructor === Map) {
+		Ks = [...x.keys()]
+	}
+	else {
+		const Ks_ = Object.keys(x)
+		const symbols = Object.getOwnPropertySymbols(x)
+		Ks = [...Ks_, ...symbols]
+	}
+
+	Ks = Ks.sort((a, b) => {
+		if (typeof a === "symbol" || typeof b === "symbol") {
+			return 1
+		}
+		return a === b ? 0 : a >= b ? 1 : -1
+	})
+
+	return Ks
 }

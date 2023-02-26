@@ -1,6 +1,7 @@
-import { EOL } from "node:os"
+import { Console } from "node:console"
 import util from "node:util"
 import { relative } from "node:path"
+import { EOL } from "node:os"
 import Table from "cli-table3"
 import { deepDiff, empty } from "./deepDiff.js"
 import { ERR_SOPHI_CHECK } from "./check.js"
@@ -14,214 +15,236 @@ const TABLE_OPTS = {
 		"top": "", "top-mid": "", "top-left": "", "top-right": "",
 		"bottom": "", "bottom-mid": "", "bottom-left": "", "bottom-right": "",
 		"left": "", "left-mid": "", "mid": "", "mid-mid": "",
-		"right": "", "right-mid": "", "middle": "│",
+		"right": "", "right-mid": "", "middle": "",
 	},
-	style: {
-		["padding-left"]: 0,
-		["padding-right"]: 0,
-	},
+	style: {},
 }
-const TABLE_PADDING = 1
 
+const { print, indent, outdent } = helpers()
 
 /*
 suite:: {
-	duration:: ms,
-	suites:: Map ('/home/sophi/tests/file1.test.js' -> {
+	suites:: Map ('/projecRoot/tests/testFile.test.js' -> {
 		clusters: {
 			runnable:: 'Test title 2' -> {fn, error?},
-			skipped:: 'Test title 3' -> {},
-			t0d0s:: 'Test title 3' -> {},
+			skip:: 'Test title 3' -> {},
+			t0d0:: 'Test title 3' -> {},
 		},
-		justUsed: bool,
-		testCount: number,
+		n_Tests: number,
 		file_content:: string
 	})
+	oneOrJustUsed: false | "one" | "just",
+	duration:: {
+		collect: ms,
+		tests: ms,
+	}
 }
 */
-export function report(suite, {printDiffs = false, projectRoot = globalThis[SOPHI].projectRoot} = {}) {
+export function report(suite, {
+	projectRoot = globalThis[SOPHI].projectRoot,
+	markStringables = true,
+} = {}) {
 
-	const L = " | ".dim
-	const { print, indent, outdent } = helpers(globalThis.console, process)
+	const startTime = Date.now()
 	const summary = summarize(suite.suites)
+	const { failTests } = summary
 
 	print_nl()
-	if (summary.passedCountPerFile.size > 0) {
-		print_passedCountPerFile(summary.passedCountPerFile)
-		print_nl(2)
-	}
-	if (summary.fails.size > 0) {
-		print_FailedTests(summary.fails)
-		print_nl()
-	}
+	print_SummaryPerFile(failTests, suite.suites)
+	print_FailedTests(failTests, suite.suites)
 	print_Summary(summary, suite)
-
-/*
-
-	function warnIfNoTests(suites) {
-		for (const [filePath, suite] of suites) {
-			if (suite.testCount === 0) {
-				console.log()
-			}
-		}
-	}
-*/
-	function helpers(console, process) {
-
-		const _console = new console.Console({
-			stdout: process.stdout,
-			groupIndentation: 3,
-		})
-
-		const print = _console.log
-		const indent = _console.group
-		const outdent = _console.groupEnd
-
-		return { print, indent, outdent }
-	}
 
 	function summarize(suites) {
 
-		let fails = new Map()   //  relFilePath -> {file_content, tests: testTitle -> {testErr, groups}}
-		let passedCountPerFile = new Map()   // filePath -> passedCount
-		let countSkippedFiles = 0
-		let countTodoFiles = 0
-
-		let countPassedTests = 0
-		let countFailedTests = 0
-		let countSkippedTests = 0
-		let countTodoTests = 0
 		let filesWithNoTests = new Set()
+		let failTests = new Map()   //  filePath -> Set(testID)
+		let n_SkippedFiles = 0
+		let n_TodoFiles = 0
 
-		for (const [filePath, suite] of suites) {
+		let n_PassedTests = 0
+		let n_FailedTests = 0
+		let n_SkippedTests = 0
+		let n_TodoTests = 0
 
-			const relFilePath = relative(projectRoot, filePath)
+		for (const [filePath, fileSuite] of suites) {
+			const { clusters, n_Tests } = fileSuite
 
-			if (suite.testCount === 0) {
-				filesWithNoTests.add(relFilePath)
+			if (fileSuite.n_Tests === 0) {
+				filesWithNoTests.add(filePath)
 				continue
 			}
 
-			const {runnable, skipped, todos} = suite.clusters
+			const { runnable, skip, todo } = clusters
 
-			countSkippedTests += skipped.size
-			countTodoTests += todos.size
+			n_SkippedTests += skip.size
+			n_TodoTests += todo.size
 
-			if (runnable.size === 0) {
-				if (skipped.size > 0) countSkippedFiles++
-				else countTodoFiles++
+			if (skip.size === n_Tests) {
+				n_SkippedFiles++
 				continue
 			}
 
-			let filePassed = true
-			let failedTests
+			if (todo.size === n_Tests) {
+				n_TodoFiles++
+				continue
+			}
+
+			let fileFailesTests
 
 			for (const [testID, test] of runnable) {
 
 				if (!test.error) {
-					countPassedTests++
+					n_PassedTests++
 					continue
 				}
 
-				filePassed = false
-				countFailedTests++
+				n_FailedTests++
 
-				if (!fails.has(relFilePath)) {
-
-					failedTests = new Map()
-
-					const failInfo = {
-						file_content: suite.file_content,
-						tests: failedTests,
-					}
-
-					fails.set(relFilePath, failInfo)
+				if (!failTests.has(filePath)) {
+					fileFailesTests = new Set()
+					failTests.set(filePath, fileFailesTests)
 				}
 
-				const {testTitle, groups} = extractTestTitleAndGroups(testID)
-
-				const testInfo = {
-					testErr: test.error,
-					groups,
-				}
-
-				failedTests.set(testTitle, testInfo)
-			}
-
-			if (filePassed) {
-				passedCountPerFile.set(relFilePath, runnable.size)
+				fileFailesTests.add(testID)
 			}
 		}
 
-		const countPassedFiles = passedCountPerFile.size
-		const countFailedFiles = fails.size
-
 		return {
-			fails,
-			passedCountPerFile,
+			failTests,
 
-			countPassedFiles,
-			countFailedFiles,
-			countSkippedFiles,
-			countTodoFiles,
+			n_PassedFiles: suites.size - failTests.size - n_SkippedFiles - n_TodoFiles,
+			n_FailedFiles: failTests.size,
+			n_SkippedFiles,
+			n_TodoFiles,
 
-			countPassedTests,
-			countFailedTests,
-			countSkippedTests,
-			countTodoTests,
+			n_PassedTests,
+			n_FailedTests,
+			n_SkippedTests,
+			n_TodoTests,
 
 			filesWithNoTests,
 		}
 	}
 
-	function print_passedCountPerFile(passedCountPerFile) {
-		for (const [path, count] of passedCountPerFile) {
-			const TESTS_PASSED = `${count} Test${count > 1 ? "s" : ""}`.green
-			print("✓".green.thick + " " + path + L + TESTS_PASSED)
+	function print_SummaryPerFile(failTests, suites) {
+
+		let tableOpts = copy(TABLE_OPTS)
+		tableOpts.style["padding-right"] = 0
+		tableOpts.style["padding-left"] = 0
+		let table = new Table(tableOpts)
+
+		for (const [filePath, { clusters: { runnable, skip, todo } }] of suites) {
+
+			const fileFailTests = failTests.get(filePath)
+			const n_FailT = fileFailTests?.size || 0
+
+			let tableRow = []
+
+			const starter = n_FailT === 0 ? "● ".green : "● ".red
+			tableRow.push({ content: starter + filePath, style: { ["padding-right"]: 1 } })
+
+			const n_PassT = runnable.size - n_FailT
+			const n_SkipT = skip.size
+			const n_TodoT = todo.size
+
+			tableRow.push(toCell(n_FailT ? `${n_FailT} ✘`.red : ""))
+			tableRow.push(toCell(n_PassT ? `${n_PassT} ✔`.green : ""))
+			tableRow.push(toCell(n_SkipT ? `${n_SkipT} ${"❯❯".thick}`.yellow : ""))
+			tableRow.push(toCell(n_TodoT ? `${n_TodoT} []`.blue : ""))
+
+			table.push(tableRow)
+
+
+			function toCell(str) {
+				return {
+					content: str,
+					hAlign: "right",
+					style: {
+						["padding-right"]: str === "" ? 0 : 2,
+						["padding-left"]: 0,
+					},
+				}
+			}
 		}
+
+		print(table.toString())
+		print_nl(2)
 	}
 
-	function print_FailedTests(fails) {
+	function print_FailedTests(failTests, suites) {
+		if (failTests.size === 0) return
 
-		for (const [file_path, {file_content, tests}] of fails) {
-			for (const [testTitle, {testErr, groups}] of tests) {
+		for (let [filePath, testID_s] of failTests) {
+			const { file_content, clusters: { runnable } } = suites.get(filePath)
 
-				const { cleanErrStack, failLoc } = dependencies(testErr, file_path)
+			for (const testID of testID_s) {
+				const { error: testErr } = runnable.get(testID)
 
-				print_PathAndLine(file_path, failLoc)
-					print_nl()
+				const { cleanErrStack, failLoc } = dependencies(testErr, filePath)
+
+				print_PathAndLine(filePath, failLoc)
+				print_nl()
 				indent()
-					print_TestTitle(testTitle, groups)
-					print_nl()
-					print_AssertionZone(failLoc.line, file_content)
-					print_nl()
-					print_ErrorDiagnostics(testErr, cleanErrStack)
-					print_nl(2)
+				print_TestTitle(testID)
+				print_nl()
+				print_AssertionZone(failLoc.line, file_content)
+				print_nl()
+				print_ErrorDiagnostics(testErr, cleanErrStack)
+				print_nl(2)
 				outdent()
 			}
 		}
 
+		print_nl()
 
-		function dependencies(testErr, file_path) {
+
+		function dependencies(testErr, filePath) {
 			const cleanStack = trimErrStack(testErr.stack)
 
 			return {
 				cleanErrStack: cleanStack,
-				failLoc: getFailLocation(cleanStack, file_path),
+				failLoc: getFailLocation(cleanStack, filePath),
+			}
+
+
+			function trimErrStack(stack) {
+				return stack.split(NL)
+					.map(l => l.trim())
+					.filter(l => l.startsWith("at"))
+			}
+
+			function getFailLocation(cleanErrStack, filePath) {
+
+				let failLine = cleanErrStack
+					.find(x => x.includes(filePath))
+
+				if (!failLine) {
+					throw new Error("An error occurred outside test files: ", { cause: testErr })
+				}
+
+				failLine = failLine.split(":")
+				const line = failLine[failLine.length - 2]
+				const col = failLine[failLine.length - 1].replaceAll(")", "")
+
+				return {
+					line: Number(line),
+					col: Number(col),
+				}
 			}
 		}
 
-		function print_PathAndLine(file_path, failLoc) {
+		function print_PathAndLine(filePath, failLoc) {
 
-			const fileTitle = `${file_path}:${failLoc.line}:${failLoc.col}`
+			const fileTitle = `${filePath}:${failLoc.line}:${failLoc.col}`
 
 			print(`${" Fail ".red.inverse} ${fileTitle.red.thick} ${"─".repeat(20).red}`)
 		}
 
-		function print_TestTitle(title, groups) {
+		function print_TestTitle(testID) {
+			let { testTitle, groups } = extractTestTitleAndGroups(testID)
 			groups = groups.join(" ▶ ")
 			groups = groups === "" ? "" : (groups + " ▶ ")
-			print(`${groups}${title}`.yellow.thick)
+			print(`${groups}${testTitle}`.yellow.thick)
 		}
 
 		function print_AssertionZone(failLine, file_content, printNLines = 3) {
@@ -245,21 +268,9 @@ export function report(suite, {printDiffs = false, projectRoot = globalThis[SOPH
 			if (testErr.code === ERR_SOPHI_CHECK) {
 				const { received, expected, message } = testErr
 
-				if (printDiffs) {
-					const diff = deepDiff(received, expected)
-
-					const existDiff = !Array.isArray(diff)
-
-					if (existDiff) {
-						print_Diffs(diff)
-					}
-				}
-
-				print_AssertionMsg(message)
+				print_Diff(received, expected, markStringables)
 				print_nl()
-				indent()
-					print_ComparatesWhole(received, expected)
-				outdent()
+				print_AssertionMsg(message)
 				print_nl()
 				print_Stack(cleanErrStack)
 			}
@@ -267,145 +278,206 @@ export function report(suite, {printDiffs = false, projectRoot = globalThis[SOPH
 				print(testErr)
 			}
 
-			function print_Diffs(diff) {
 
-				diff = flatten(diff)
+			function print_Diff(exp, rec) {
 
-				for (let { path, recLeaf, expLeaf } of diff) {
-					print(formatPath(path, "."))
+				let diff = deepDiff(exp, rec)
+				if (isLeaf(diff)) {
+					printLeaf(diff)
+					return
+				}
+				print(diffTypeToStr(diff.type))
+				printDiff(diff)
+				print(diffTypeToCloseBracket(diff.type))
+
+
+				function printDiff(diff) {
+
+					if (isLeaf(diff)) {
+						indent()
+						printLeaf(diff)
+						outdent()
+						return
+					}
+
 					indent()
-						print(toTable(recLeaf, expLeaf).toString())
+
+					for (const [k, v] of diff.diffs) {
+
+						const kStr = kAsString(k, diff.type, v.type)
+
+						print(kStr)
+						printDiff(v)
+						if (!isLeaf(v)) {
+							print(diffTypeToCloseBracket(diff.type))
+						}
+					}
+
 					outdent()
-					print_nl()
 				}
 
-				function flatten(diff) {
-					let flatDiffs = []
-					let currPath = []
+				function printLeaf(diff) {
+					let exp = diff[0]
+					let rec = diff[1]
 
-					_build(diff)
+					let marked = false
 
-					function _build(diff) {
+					if (bothCanStringDiff(exp, rec)) {
+						[exp, rec] = markStrsDiffs(exp, rec)
+						marked = true
+					}
 
-						if (Array.isArray(diff)) {
+					print(leafValToStr(exp, { isExp: true }))
+					print(leafValToStr(rec, { isExp: false }))
 
-							const rec = diff[0]
-							const exp = diff[1]
 
-							flatDiffs.push({
-								path: currPath.slice(),
-								recLeaf: rec,
-								expLeaf: exp,
-							})
+					function leafValToStr(val, { isExp }) {
 
-							return
+						let mark = " ".inverse
+						mark = isExp ? mark.green : mark.red
+
+						const opts = {
+							depth: 1,
+							compact: false,
+							colors: true,
+							sorted: true,
 						}
 
-						const { type, diffs } = diff
+						if (!marked) {
+							val = val === empty ? "" : util.inspect(val, opts)
+						}
 
-						const sortedKs = [...diffs.keys()]
-							.sort((a, b) => {
-								if (typeof a === "symbol" || typeof b === "symbol") {
-									return 0
+						val = val.split("\n").map(l => mark + " " + l).join("\n")
+
+						return val
+					}
+
+					function bothCanStringDiff(exp, rec) {
+
+						if (exp === empty || rec === empty) return false
+
+						const recType = typeof rec
+						const expType = typeof exp
+
+						if (recType !== expType) {
+							return false
+						}
+
+						const type = recType
+						if (type === "string" || type === "number" || type === "bigint" || type === "symbol") {
+							return true
+						}
+
+						return false
+					}
+
+					function markStrsDiffs(exp, rec) {
+
+						const style = "underline"
+
+						exp = exp.toString()
+						rec = rec.toString()
+
+						const expL = exp.length
+						const recL = rec.length
+
+						let shortStr = rec
+						let longStr = exp
+						if (recL > expL) {
+							[shortStr, longStr] = [exp, rec]
+						}
+
+						const shortL = shortStr.length
+
+						let expNew = ""
+						let recNew = ""
+
+						let i = 0
+						while (i < shortL) {
+
+							if (rec[i] !== exp[i]) {
+								let recMarked = ""
+								let expMarked = ""
+
+								while (rec[i] !== exp[i] && i < shortL) {
+									recMarked += rec[i]
+									expMarked += exp[i]
+									i++
 								}
-							})
+								recNew += (recMarked[style])
+								expNew += (expMarked[style])
+								continue
+							}
 
-						for (const k of sortedKs) {
-							currPath.push({ k, type })
-							_build(diffs.get(k))
-							currPath.pop()
-						}
-					}
-
-					return flatDiffs
-				}
-
-				function formatPath(_path, separator) {
-
-					let path = []
-
-					for (let pathSegment of _path) {
-						let k = pathSegment.k
-
-						if (typeof k === "symbol") {
-							k = k.toString()
-						}
-						else {   // is string
-							k = `'${k}'`
+							expNew += exp[i]
+							recNew += rec[i]
+							i++
 						}
 
-						path.push(k)
-					}
+						const longL = longStr.length
+						let markedRestOfLongStr = ""
+						while (i < longL) {
+							markedRestOfLongStr += longStr[i]
+							i++
+						}
 
-					return ("at " + `${separator}` + path.join(separator) + ":").yellow
-				}
+						markedRestOfLongStr = markedRestOfLongStr[style]
 
-				function toTable(rec, exp) {
-
-					let table = new Table(TABLE_OPTS)
-
-					const rec_exp_cells = toTableCell(rec, exp)
-
-					table.push(rec_exp_cells)
-
-					return table
-
-					function toTableCell(rec, exp) {
-
-						if (bothCanStringDiff(rec, exp)) {
-							[rec, exp] = markStrsDiffs(rec, exp)
-							rec = rec.red
-							exp = exp.green
+						if (longStr === rec) {
+							recNew += markedRestOfLongStr
 						}
 						else {
-							rec = rec === empty ? "-".white : formatComparate(rec).red
-							exp = exp === empty ? "-".white : formatComparate(exp).green
+							expNew += markedRestOfLongStr
 						}
 
-						const recCell = {
-							content: rec,
-							style: {
-								["padding-right"]: TABLE_PADDING,
-							},
-						}
-
-						const expCell = {
-							content: exp,
-							style: {
-								["padding-left"]: TABLE_PADDING,
-							},
-						}
-
-						return [recCell, expCell]
-
-
-						function formatComparate(comp) {
-
-							let str = comp
-
-							if (comp?.constructor === Object) {
-								const opts = {
-									depth: 2,
-									compact: false,
-									colors: false,
-									sorted: true,
-								}
-								let objStr = util.inspect(comp, opts)
-								str = objStr
-							}
-							else {
-								const opts = {
-									depth: 3,
-									compact: true,
-									colors: false,
-									sorted: true,
-								}
-								str = util.inspect(comp, opts)
-							}
-
-							return str
-						}
+						return [expNew, recNew]
 					}
+				}
+
+
+				function diffTypeToStr(diffType) {
+
+					let k = ""
+
+					if (diffType === "Object") {
+						k += "{"
+					}
+					if (diffType === "Array") {
+						k += "["
+					}
+					if (diffType === "Map") {
+						k += "Map {"
+					}
+
+					return k
+				}
+
+				function diffTypeToCloseBracket(diffType) {
+					return diffType === "Array" ? "]" : "}"
+				}
+
+				function kAsString(k, parentType, diffType) {
+
+					const opts = {
+						depth: 1,
+						compact: true,
+						colors: false,
+						sorted: true,
+					}
+
+					k = util.inspect(k, opts) + ": "
+
+					if (parentType === "Map") {
+						k += "=> "
+					}
+
+					k = k + diffTypeToStr(diffType)
+
+					return k
+				}
+
+				function isLeaf(v) {
+					return Array.isArray(v)
 				}
 			}
 
@@ -413,219 +485,89 @@ export function report(suite, {printDiffs = false, projectRoot = globalThis[SOPH
 				print(message.yellow.thick)
 			}
 
-			function print_ComparatesWhole(rec, exp) {
-
-				let diffed = false
-
-				if (bothCanStringDiff(rec, exp)) {
-					[rec, exp] = markStrsDiffs(rec, exp)
-					diffed = true
-				}
-
-				let table = new Table(TABLE_OPTS)
-
-				const opts = { depth: 50, compact: false, sorted: true, colors: false }
-
-				rec = diffed ? rec : util.inspect(rec, opts)
-				exp = diffed ? exp : util.inspect(exp, opts)
-
-				const recCell = {
-					content: rec.red,
-					style: {
-						["padding-right"]: TABLE_PADDING,
-					},
-				}
-
-				const expCell = {
-					content: exp.green,
-					style: {
-						["padding-left"]: TABLE_PADDING,
-					},
-				}
-
-				table.push([recCell, expCell])
-
-				print(table.toString())
-			}
-
 			function print_Stack(cleanErrStack) {
 				print(cleanErrStack.map(l => l.trim()).join(NL).dim)
 			}
-
-			function bothCanStringDiff(rec, exp) {
-
-				const recType = typeof rec
-				const expType = typeof exp
-
-				if (recType !== expType) {
-					return false
-				}
-
-				const type = recType
-				if (type === "string" || type === "number" || type === "bigint" || type === "symbol") {
-					return true
-				}
-
-				return false
-			}
-
-			function markStrsDiffs(rec, exp) {
-
-				const style = "underline"
-
-				rec = rec.toString()
-				exp = exp.toString()
-
-				const recL = rec.length
-				const expL = exp.length
-
-				let shortStr = rec
-				let longStr = exp
-				if (recL > expL) {
-					[shortStr, longStr] = [exp, rec]
-				}
-
-				const shortL = shortStr.length
-
-				let recNew = ""
-				let expNew = ""
-
-				let i = 0
-				while (i < shortL) {
-
-					if (rec[i] !== exp[i]) {
-						let recMarked = ""
-						let expMarked = ""
-
-						while (rec[i] !== exp[i] && i < shortL) {
-							recMarked += rec[i]
-							expMarked += exp[i]
-							i++
-						}
-						recNew += (recMarked[style])
-						expNew += (expMarked[style])
-						continue
-					}
-
-					recNew += rec[i]
-					expNew += exp[i]
-					i++
-				}
-
-				const longL = longStr.length
-				let markedRestOfLongStr = ""
-				while (i < longL) {
-					markedRestOfLongStr += longStr[i]
-					i++
-				}
-
-				markedRestOfLongStr = markedRestOfLongStr[style]
-
-				if (longStr === rec) {
-					recNew += markedRestOfLongStr
-				}
-				else {
-					expNew += markedRestOfLongStr
-				}
-
-				return [recNew, expNew]
-			}
-		}
-
-		function getFailLocation(cleanErrStack, file_path) {
-
-			let failLine = cleanErrStack
-				.find(x => x.includes(file_path))
-				.split(":")
-			const line = failLine[failLine.length - 2]
-			const col = failLine[failLine.length - 1].replaceAll(")", "")
-
-			return {
-				line: Number(line),
-				col: Number(col),
-			}
-		}
-
-		function trimErrStack(stack) {
-			return stack.split(NL)
-				.map(l => l.trim())
-				.filter(l => l.startsWith("at"))
 		}
 	}
 
 	function print_Summary(summary, suite) {
 
-		let {
-			countFailedFiles: fail_F,
-			countPassedFiles: pass_F,
-			countSkippedFiles: skip_F,
-			countTodoFiles: todo_F,
+		let tableOpts = copy(TABLE_OPTS)
+		tableOpts.colWidths = [13]
+		tableOpts.style = {
+			["padding-left"]: 1,
+			["padding-right"]: 1,
+		}
 
-			countFailedTests: fail_T,
-			countPassedTests: pass_T,
-			countSkippedTests: skip_T,
-			countTodoTests: todo_T,
-
-			filesWithNoTests,
-		} = summary
-
-		let totalF = pass_F + fail_F + skip_F + todo_F
-		let totalT = pass_T + fail_T + skip_T + todo_T
-
-		const FILES = "   Files  ".dim
-		fail_F = fail_F ? `${fail_F} Failed`.red + L : ""
-		pass_F = pass_F ? `${pass_F} Passed`.green +  L : ""
-		skip_F = skip_F ? `${skip_F} Skipped`.yellow + L : ""
-		todo_F = todo_F ? `${todo_F} Todo`.blue + L : ""
-		totalF = `${totalF} Total`
-
-		const TESTS = "   Tests  ".dim
-		fail_T = fail_T ? `${fail_T} Failed`.red + L : ""
-		pass_T = pass_T ? `${pass_T} Passed`.green + L : ""
-		skip_T = skip_T ? `${skip_T} Skipped`.yellow + L : ""
-		todo_T = todo_T ? `${todo_T} Todo`.blue + L : ""
-		totalT = `${totalT} Total`
-
-		const separator = "─".repeat(Math.floor(process.stdout.columns * 0.75))
-
-		print(" Summary ".inverse + " " + separator)
+		const line = " " + "─".repeat(Math.floor(process.stdout.columns * 0.75))
+		print(" Summary ".inverse + line)
 		print_nl()
-		print_FilesWithNoTests()
-		print_todos(suite)
-		indent()
-			print(FILES + fail_F + pass_F + skip_F + todo_F + totalF)
-			print(TESTS + fail_T + pass_T + skip_T + todo_T + totalT)
-			print(`${"Duration".dim}  ${toHuman(suite.duration)}`)
-		outdent()
+		print_oneOrJustUsed()
+		print_filesWithNoTests()
+		print_todoFiles()
+		print_testsAndFilesSummary()
+		print_nl()
+		print_duration()
 		print_nl(2)
 
 
-		function print_FilesWithNoTests() {
-			if (filesWithNoTests.size > 0) {
+		function print_oneOrJustUsed() {
+
+			if (suite.oneOrJustUsed === "one") {
+				let filePath
+				for (const entry of suite.suites) {
+					filePath = entry[0]
+				}
+				filePath = relative(projectRoot, filePath)
 				indent()
-					print("🧟‍♀️Files with no tests: ".blue)
-					indent()
-						for (const filePath of filesWithNoTests) {
-							print("🧟‍♂️" + filePath.blue)
-						}
-					outdent()
+				print(`⚠️ ${"one".italic.thick} modifier used in ${filePath.thick}`.yellow)
+				outdent()
+				print_nl()
+			}
+
+			if (suite.oneOrJustUsed === "just") {
+				indent()
+				print(`⚠️ ${"just".italic.thick} modifier used in: `.yellow)
+				indent()
+				for (let [filePath] of suite.suites) {
+					filePath = relative(projectRoot, filePath)
+					print(`⚠️ ${filePath}`.yellow)
+				}
+				outdent()
 				outdent()
 				print_nl()
 			}
 		}
 
-		function print_todos(suite) {
-			if (summary.countTodoTests === 0) return
+		function print_filesWithNoTests() {
+			const { filesWithNoTests } = summary
+
+			if (filesWithNoTests.size > 0) {
+				indent()
+				print("🧟‍♀️Files with no tests: ".blue)
+				indent()
+				for (const filePath of filesWithNoTests) {
+					print("🧟‍♂️" + filePath.blue)
+				}
+				outdent()
+				outdent()
+				print_nl()
+			}
+		}
+
+		function print_todoFiles() {
+			if (summary.n_TodoTests === 0) return
 
 			indent()
 			print("🖊️ Todo tests: ".blue)
 			indent()
-			for (const [filePath, {clusters: {todos}}] of suite.suites) {
-				if (todos.size === 0) continue
+			for (const [filePath, { clusters: { todo } }] of suite.suites) {
+				if (todo.size === 0) continue
 				print(`● ${relative(projectRoot, filePath)}`.blue)
 				indent()
-				for (const entry of todos) {
-					print(`◻ ${entry[0]}`.blue)
+				for (const entry of todo) {
+					print(`[] ${entry[0]}`.blue)
 				}
 				outdent()
 			}
@@ -633,15 +575,103 @@ export function report(suite, {printDiffs = false, projectRoot = globalThis[SOPH
 			outdent()
 			print_nl()
 		}
-	}
 
-	function print_nl(i = 1) {
-		while (i) {
-			print("")
-			i--
+		function print_testsAndFilesSummary() {
+
+			let {
+				n_FailedFiles: fail_F, n_PassedFiles: pass_F, n_SkippedFiles: skip_F, n_TodoFiles: todo_F,
+				n_FailedTests: fail_T, n_PassedTests: pass_T, n_SkippedTests: skip_T, n_TodoTests: todo_T,
+			} = summary
+
+			let _TABLE_OPTS = copy(tableOpts)
+			_TABLE_OPTS.colAligns = Array(6).fill("right")
+
+			let table = new Table(_TABLE_OPTS)
+
+			let headers = [""]
+			let filesRow = ["Files ".dim]
+			let testsRow = ["Tests ".dim]
+
+			const total_F = pass_F + fail_F + skip_F + todo_F
+			const total_T = pass_T + fail_T + skip_T + todo_T
+
+			headers.push("Total")
+			filesRow.push(total_F)
+			testsRow.push(total_T)
+			if (fail_T) {
+				headers.push("Failed".red)
+				filesRow.push(`${fail_F}`.red)
+				testsRow.push(`${fail_T}`.red)
+			}
+			if (pass_T) {
+				headers.push("Passed".green)
+				filesRow.push(`${pass_F}`.green)
+				testsRow.push(`${pass_T}`.green)
+			}
+			if (skip_T) {
+				headers.push("Skipped".yellow)
+				filesRow.push(`${skip_F}`.yellow)
+				testsRow.push(`${skip_T}`.yellow)
+			}
+			if (todo_T) {
+				headers.push("Todo".blue)
+				filesRow.push(`${todo_F}`.blue)
+				testsRow.push(`${todo_T}`.blue)
+			}
+
+			table.push(headers, filesRow, testsRow)
+			print(table.toString())
+		}
+
+		function print_duration() {
+
+			let { duration: { collect: collectDuration, tests: testsDuration } } = suite
+			let reportDuration = Date.now() - startTime
+			let totalDuration = reportDuration + collectDuration + testsDuration
+			collectDuration = toHuman(collectDuration)
+			testsDuration = toHuman(testsDuration)
+			reportDuration = toHuman(reportDuration)
+			totalDuration = toHuman(totalDuration)
+
+			let _TABLE_OPTS = copy(tableOpts)
+			_TABLE_OPTS.colAligns = Array(5).fill("right")
+
+			let table = new Table(_TABLE_OPTS)
+
+			let headers = ["", "Total", "Collect".dim, "Tests".dim, "Report".dim]
+			let times = [{ content: "Duration ".dim, hAlign: "right" }, totalDuration, collectDuration.dim, testsDuration.dim, reportDuration.dim]
+
+			table.push(headers, times)
+			print(table.toString())
 		}
 	}
 }
+
+function copy(obj) {
+	return JSON.parse(JSON.stringify(obj))
+}
+
+function helpers() {
+
+	const _console = new Console({
+		stdout: process.stdout,
+		groupIndentation: 3,
+	})
+
+	const print = _console.log
+	const indent = _console.group
+	const outdent = _console.groupEnd
+
+	return { print, indent, outdent }
+}
+
+function print_nl(i = 1) {
+	while (i) {
+		print("")
+		i--
+	}
+}
+
 
 
 export function toHuman(ms) {
