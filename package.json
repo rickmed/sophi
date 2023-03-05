@@ -19,8 +19,7 @@
     "yoctocolors": "^1.0.0"
   },
   "dependencies": {
-    "cli-table3": "^0.6.3",
-    "dequal": "^2.0.3"
+    "cli-table3": "^0.6.3"
   },
   "engines": {
     "node": ">=14.5.0"

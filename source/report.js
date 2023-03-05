@@ -1,15 +1,8 @@
 import { Console } from "node:console"
-import util from "node:util"
-import { relative } from "node:path"
-import { EOL } from "node:os"
 import Table from "cli-table3"
-import { deepDiff, empty } from "./deepDiff.js"
-import { ERR_SOPHI_CHECK } from "./check.js"
-import { extractTestTitleAndGroups } from "./suite.js"
-import { SOPHI } from "./utils.js"
+import { fullTestStr } from "./utils.js"
 import "./colors/colors.js"
 
-const NL = "\n"
 const TABLE_OPTS = {
 	chars: {
 		"top": "", "top-mid": "", "top-left": "", "top-right": "",
@@ -22,134 +15,68 @@ const TABLE_OPTS = {
 
 const { print, indent, outdent } = helpers()
 
-/*
+/* in:
 suite:: {
 	suites:: Map ('/projecRoot/tests/testFile.test.js' -> {
 		clusters: {
-			runnable:: 'Test title 2' -> {fn, error?},
-			skip:: 'Test title 3' -> {},
-			t0d0:: 'Test title 3' -> {},
+			failed:: testID -> {failLoc: {col, line}, failMsg},
+			passed:: Set(testID),
+			skip:: Set(testID),
+			todo:: Set(testID),
 		},
 		n_Tests: number,
-		file_content:: string
 	})
 	oneOrJustUsed: false | "one" | "just",
-	duration:: {
+	durations:: {
 		collect: ms,
 		tests: ms,
 	}
 }
 */
-export function report(suite, {
-	projectRoot = globalThis[SOPHI].projectRoot,
-	markStringables = true,
-} = {}) {
+export function report(suite) {
 
 	const startTime = Date.now()
-	const summary = summarize(suite.suites)
-	const { failTests } = summary
 
 	print_nl()
-	print_SummaryPerFile(failTests, suite.suites)
-	print_FailedTests(failTests, suite.suites)
-	print_Summary(summary, suite)
+	print_SummaryPerFile(suite.suites)
+	print_FailedTests(suite.suites)
+	print_Summary(suite)
 
-	function summarize(suites) {
-
-		let filesWithNoTests = new Set()
-		let failTests = new Map()   //  filePath -> Set(testID)
-		let n_SkippedFiles = 0
-		let n_TodoFiles = 0
-
-		let n_PassedTests = 0
-		let n_FailedTests = 0
-		let n_SkippedTests = 0
-		let n_TodoTests = 0
-
-		for (const [filePath, fileSuite] of suites) {
-			const { clusters, n_Tests } = fileSuite
-
-			if (fileSuite.n_Tests === 0) {
-				filesWithNoTests.add(filePath)
-				continue
-			}
-
-			const { runnable, skip, todo } = clusters
-
-			n_SkippedTests += skip.size
-			n_TodoTests += todo.size
-
-			if (skip.size === n_Tests) {
-				n_SkippedFiles++
-				continue
-			}
-
-			if (todo.size === n_Tests) {
-				n_TodoFiles++
-				continue
-			}
-
-			let fileFailesTests
-
-			for (const [testID, test] of runnable) {
-
-				if (!test.error) {
-					n_PassedTests++
-					continue
-				}
-
-				n_FailedTests++
-
-				if (!failTests.has(filePath)) {
-					fileFailesTests = new Set()
-					failTests.set(filePath, fileFailesTests)
-				}
-
-				fileFailesTests.add(testID)
-			}
-		}
-
-		return {
-			failTests,
-
-			n_PassedFiles: suites.size - failTests.size - n_SkippedFiles - n_TodoFiles,
-			n_FailedFiles: failTests.size,
-			n_SkippedFiles,
-			n_TodoFiles,
-
-			n_PassedTests,
-			n_FailedTests,
-			n_SkippedTests,
-			n_TodoTests,
-
-			filesWithNoTests,
-		}
-	}
-
-	function print_SummaryPerFile(failTests, suites) {
+	function print_SummaryPerFile(suites) {
 
 		let tableOpts = copy(TABLE_OPTS)
 		tableOpts.style["padding-right"] = 0
 		tableOpts.style["padding-left"] = 0
 		let table = new Table(tableOpts)
 
-		for (const [filePath, { clusters: { runnable, skip, todo } }] of suites) {
+		for (const [filePath, {n_Tests, clusters: {failed, passed, skip, todo}}] of suites) {
 
-			const fileFailTests = failTests.get(filePath)
-			const n_FailT = fileFailTests?.size || 0
-
-			let tableRow = []
-
-			const starter = n_FailT === 0 ? "● ".green : "● ".red
-			tableRow.push({ content: starter + filePath, style: { ["padding-right"]: 1 } })
-
-			const n_PassT = runnable.size - n_FailT
+			const n_FailT = failed.size
+			const n_PassT = passed.size
 			const n_SkipT = skip.size
 			const n_TodoT = todo.size
 
+			let tableRow = []
+
+			let fileMark
+
+			if (n_FailT > 0) {
+				fileMark = "✘ ".red
+			}
+			else if (n_SkipT === n_Tests) {
+				fileMark = "❯❯ ".yellow
+			}
+			else if (n_TodoT === n_Tests) {
+				fileMark = "[] ".blue
+			}
+			else {
+				fileMark = "✔ ".green
+			}
+
+			tableRow.push({ content: fileMark + filePath, style: { ["padding-right"]: 2 } })
 			tableRow.push(toCell(n_FailT ? `${n_FailT} ✘`.red : ""))
 			tableRow.push(toCell(n_PassT ? `${n_PassT} ✔`.green : ""))
-			tableRow.push(toCell(n_SkipT ? `${n_SkipT} ${"❯❯".thick}`.yellow : ""))
+			tableRow.push(toCell(n_SkipT ? `${n_SkipT} ${"❯".thick}`.yellow : ""))
 			tableRow.push(toCell(n_TodoT ? `${n_TodoT} []`.blue : ""))
 
 			table.push(tableRow)
@@ -171,327 +98,23 @@ export function report(suite, {
 		print_nl(2)
 	}
 
-	function print_FailedTests(failTests, suites) {
-		if (failTests.size === 0) return
+	function print_FailedTests(suites) {
+		for (const [filePath, {clusters: {failed}}] of suites) {
+			for (const [, {failLoc: {line, col}, failMsg}] of failed) {
 
-		for (let [filePath, testID_s] of failTests) {
-			const { file_content, clusters: { runnable } } = suites.get(filePath)
-
-			for (const testID of testID_s) {
-				const { error: testErr } = runnable.get(testID)
-
-				const { cleanErrStack, failLoc } = dependencies(testErr, filePath)
-
-				print_PathAndLine(filePath, failLoc)
+				print(`${" Fail ".red.inverse} ${`${filePath}:${line}:${col}`.red.thick} ${"─".repeat(50).red}`)
 				print_nl()
 				indent()
-				print_TestTitle(testID)
-				print_nl()
-				print_AssertionZone(failLoc.line, file_content)
-				print_nl()
-				print_ErrorDiagnostics(testErr, cleanErrStack)
-				print_nl(2)
+				print(failMsg)
 				outdent()
-			}
-		}
-
-		print_nl()
-
-
-		function dependencies(testErr, filePath) {
-			const cleanStack = trimErrStack(testErr.stack)
-
-			return {
-				cleanErrStack: cleanStack,
-				failLoc: getFailLocation(cleanStack, filePath),
-			}
-
-
-			function trimErrStack(stack) {
-				return stack.split(NL)
-					.map(l => l.trim())
-					.filter(l => l.startsWith("at"))
-			}
-
-			function getFailLocation(cleanErrStack, filePath) {
-
-				let failLine = cleanErrStack
-					.find(x => x.includes(filePath))
-
-				if (!failLine) {
-					throw new Error("An error occurred outside test files: ", { cause: testErr })
-				}
-
-				failLine = failLine.split(":")
-				const line = failLine[failLine.length - 2]
-				const col = failLine[failLine.length - 1].replaceAll(")", "")
-
-				return {
-					line: Number(line),
-					col: Number(col),
-				}
-			}
-		}
-
-		function print_PathAndLine(filePath, failLoc) {
-
-			const fileTitle = `${filePath}:${failLoc.line}:${failLoc.col}`
-
-			print(`${" Fail ".red.inverse} ${fileTitle.red.thick} ${"─".repeat(20).red}`)
-		}
-
-		function print_TestTitle(testID) {
-			let { testTitle, groups } = extractTestTitleAndGroups(testID)
-			groups = groups.join(" ▶ ")
-			groups = groups === "" ? "" : (groups + " ▶ ")
-			print(`${groups}${testTitle}`.yellow.thick)
-		}
-
-		function print_AssertionZone(failLine, file_content, printNLines = 3) {
-			const fileLines = file_content.split(EOL)
-			const lowestLineIdx = failLine - Math.floor(printNLines / 2)
-			const highestLineIdx = lowestLineIdx + printNLines - 1
-			const padd = " ".repeat(4)
-			const indent = " ".repeat(3)
-			for (let i = lowestLineIdx; i <= highestLineIdx; i++) {
-				const codeLine = fileLines[i - 1].replaceAll("\t", indent)
-				if (i === failLine) {
-					print(("  > ".red + i + ": " + codeLine).thick)
-					continue
-				}
-				print((padd + i + ": " + codeLine).dim)
-			}
-		}
-
-		function print_ErrorDiagnostics(testErr, cleanErrStack) {
-
-			if (testErr.code === ERR_SOPHI_CHECK) {
-				const { received, expected, message } = testErr
-
-				print_Diff(received, expected, markStringables)
-				print_nl()
-				print_AssertionMsg(message)
-				print_nl()
-				print_Stack(cleanErrStack)
-			}
-			else {
-				print(testErr)
-			}
-
-
-			function print_Diff(exp, rec) {
-
-				let diff = deepDiff(exp, rec)
-				if (isLeaf(diff)) {
-					printLeaf(diff)
-					return
-				}
-				print(diffTypeToStr(diff.type))
-				printDiff(diff)
-				print(diffTypeToCloseBracket(diff.type))
-
-
-				function printDiff(diff) {
-
-					if (isLeaf(diff)) {
-						indent()
-						printLeaf(diff)
-						outdent()
-						return
-					}
-
-					indent()
-
-					for (const [k, v] of diff.diffs) {
-
-						const kStr = kAsString(k, diff.type, v.type)
-
-						print(kStr)
-						printDiff(v)
-						if (!isLeaf(v)) {
-							print(diffTypeToCloseBracket(diff.type))
-						}
-					}
-
-					outdent()
-				}
-
-				function printLeaf(diff) {
-					let exp = diff[0]
-					let rec = diff[1]
-
-					let marked = false
-
-					if (bothCanStringDiff(exp, rec)) {
-						[exp, rec] = markStrsDiffs(exp, rec)
-						marked = true
-					}
-
-					print(leafValToStr(exp, { isExp: true }))
-					print(leafValToStr(rec, { isExp: false }))
-
-
-					function leafValToStr(val, { isExp }) {
-
-						let mark = " ".inverse
-						mark = isExp ? mark.green : mark.red
-
-						const opts = {
-							depth: 1,
-							compact: false,
-							colors: true,
-							sorted: true,
-						}
-
-						if (!marked) {
-							val = val === empty ? "" : util.inspect(val, opts)
-						}
-
-						val = val.split("\n").map(l => mark + " " + l).join("\n")
-
-						return val
-					}
-
-					function bothCanStringDiff(exp, rec) {
-
-						if (exp === empty || rec === empty) return false
-
-						const recType = typeof rec
-						const expType = typeof exp
-
-						if (recType !== expType) {
-							return false
-						}
-
-						const type = recType
-						if (type === "string" || type === "number" || type === "bigint" || type === "symbol") {
-							return true
-						}
-
-						return false
-					}
-
-					function markStrsDiffs(exp, rec) {
-
-						const style = "underline"
-
-						exp = exp.toString()
-						rec = rec.toString()
-
-						const expL = exp.length
-						const recL = rec.length
-
-						let shortStr = rec
-						let longStr = exp
-						if (recL > expL) {
-							[shortStr, longStr] = [exp, rec]
-						}
-
-						const shortL = shortStr.length
-
-						let expNew = ""
-						let recNew = ""
-
-						let i = 0
-						while (i < shortL) {
-
-							if (rec[i] !== exp[i]) {
-								let recMarked = ""
-								let expMarked = ""
-
-								while (rec[i] !== exp[i] && i < shortL) {
-									recMarked += rec[i]
-									expMarked += exp[i]
-									i++
-								}
-								recNew += (recMarked[style])
-								expNew += (expMarked[style])
-								continue
-							}
-
-							expNew += exp[i]
-							recNew += rec[i]
-							i++
-						}
-
-						const longL = longStr.length
-						let markedRestOfLongStr = ""
-						while (i < longL) {
-							markedRestOfLongStr += longStr[i]
-							i++
-						}
-
-						markedRestOfLongStr = markedRestOfLongStr[style]
-
-						if (longStr === rec) {
-							recNew += markedRestOfLongStr
-						}
-						else {
-							expNew += markedRestOfLongStr
-						}
-
-						return [expNew, recNew]
-					}
-				}
-
-
-				function diffTypeToStr(diffType) {
-
-					let k = ""
-
-					if (diffType === "Object") {
-						k += "{"
-					}
-					if (diffType === "Array") {
-						k += "["
-					}
-					if (diffType === "Map") {
-						k += "Map {"
-					}
-
-					return k
-				}
-
-				function diffTypeToCloseBracket(diffType) {
-					return diffType === "Array" ? "]" : "}"
-				}
-
-				function kAsString(k, parentType, diffType) {
-
-					const opts = {
-						depth: 1,
-						compact: true,
-						colors: false,
-						sorted: true,
-					}
-
-					k = util.inspect(k, opts) + ": "
-
-					if (parentType === "Map") {
-						k += "=> "
-					}
-
-					k = k + diffTypeToStr(diffType)
-
-					return k
-				}
-
-				function isLeaf(v) {
-					return Array.isArray(v)
-				}
-			}
-
-			function print_AssertionMsg(message) {
-				print(message.yellow.thick)
-			}
-
-			function print_Stack(cleanErrStack) {
-				print(cleanErrStack.map(l => l.trim()).join(NL).dim)
+				print_nl(2)
 			}
 		}
 	}
 
-	function print_Summary(summary, suite) {
+	function print_Summary(suite) {
+
+		const summary = summarize(suite.suites)
 
 		let tableOpts = copy(TABLE_OPTS)
 		tableOpts.colWidths = [13]
@@ -512,6 +135,59 @@ export function report(suite, {
 		print_nl(2)
 
 
+		function summarize(suites) {
+
+			let filesWithNoTests = new Set()
+			let n_FailedFiles = 0
+			let n_PassedFiles = 0
+			let n_SkippedFiles = 0
+			let n_TodoFiles = 0
+
+			let n_FailedTests = 0
+			let n_PassedTests = 0
+			let n_SkippedTests = 0
+			let n_TodoTests = 0
+
+			for (const [filePath, fileSuite] of suites) {
+				const { clusters, n_Tests } = fileSuite
+
+				if (n_Tests === 0) {
+					filesWithNoTests.add(filePath)
+					continue
+				}
+
+				const { failed, passed, skip, todo } = clusters
+
+				n_FailedTests += failed.size
+				n_PassedTests += passed.size
+				n_SkippedTests += skip.size
+				n_TodoTests += todo.size
+
+				if (failed.size === 0) {
+					n_PassedFiles++
+				}
+				else {
+					n_FailedFiles++
+				}
+
+				if (skip.size === n_Tests) {
+					n_SkippedFiles++
+					continue
+				}
+
+				if (todo.size === n_Tests) {
+					n_TodoFiles++
+					continue
+				}
+			}
+
+			return {
+				n_PassedFiles, n_FailedFiles, n_SkippedFiles, n_TodoFiles,
+				n_FailedTests, n_PassedTests, n_SkippedTests, n_TodoTests,
+				filesWithNoTests,
+			}
+		}
+
 		function print_oneOrJustUsed() {
 
 			if (suite.oneOrJustUsed === "one") {
@@ -519,7 +195,6 @@ export function report(suite, {
 				for (const entry of suite.suites) {
 					filePath = entry[0]
 				}
-				filePath = relative(projectRoot, filePath)
 				indent()
 				print(`⚠️ ${"one".italic.thick} modifier used in ${filePath.thick}`.yellow)
 				outdent()
@@ -531,7 +206,6 @@ export function report(suite, {
 				print(`⚠️ ${"just".italic.thick} modifier used in: `.yellow)
 				indent()
 				for (let [filePath] of suite.suites) {
-					filePath = relative(projectRoot, filePath)
 					print(`⚠️ ${filePath}`.yellow)
 				}
 				outdent()
@@ -564,10 +238,10 @@ export function report(suite, {
 			indent()
 			for (const [filePath, { clusters: { todo } }] of suite.suites) {
 				if (todo.size === 0) continue
-				print(`● ${relative(projectRoot, filePath)}`.blue)
+				print(`● ${filePath}`.blue)
 				indent()
-				for (const entry of todo) {
-					print(`[] ${entry[0]}`.blue)
+				for (const testID of todo) {
+					print(`[] ${fullTestStr(testID).blue}`.blue)
 				}
 				outdent()
 			}
@@ -625,9 +299,11 @@ export function report(suite, {
 
 		function print_duration() {
 
-			let { duration: { collect: collectDuration, tests: testsDuration } } = suite
+			let { durations: { collect: collectDuration, test: testsDuration } } = suite
+
 			let reportDuration = Date.now() - startTime
 			let totalDuration = reportDuration + collectDuration + testsDuration
+
 			collectDuration = toHuman(collectDuration)
 			testsDuration = toHuman(testsDuration)
 			reportDuration = toHuman(reportDuration)
@@ -638,7 +314,7 @@ export function report(suite, {
 
 			let table = new Table(_TABLE_OPTS)
 
-			let headers = ["", "Total", "Collect".dim, "Tests".dim, "Report".dim]
+			let headers = ["", "Total", "Collect".dim, "Test".dim, "Report".dim]
 			let times = [{ content: "Duration ".dim, hAlign: "right" }, totalDuration, collectDuration.dim, testsDuration.dim, reportDuration.dim]
 
 			table.push(headers, times)

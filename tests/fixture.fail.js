@@ -1,5 +1,5 @@
-import { check_Eq, check_is } from "../../source/check.js"
-import { group, test } from "../../source/suite.js"
+import { check_Eq, check_is } from "../source/check.js"
+import { group, test } from "../source/suite.js"
 
 group("group1", () => {
 	test("Test title", () => {
@@ -8,7 +8,7 @@ group("group1", () => {
 })
 
 test("Test title 2", () => {
-	
+
 	const rec = {
 		k1: 10,
 		k3: {

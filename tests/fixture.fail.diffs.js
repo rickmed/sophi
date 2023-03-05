@@ -1,5 +1,4 @@
-import { check_Eq } from "../../source/check.js"
-import { test } from "../../source/suite.js"
+import { test, check } from "../source/index.js"
 
 test("Deep Diffs", () => {
 
@@ -27,5 +26,5 @@ test("Deep Diffs", () => {
 		},
 	}
 
-	check_Eq(rec, exp)
+	check(rec).with(exp)
 })

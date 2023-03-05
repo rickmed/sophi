@@ -1,20 +1,18 @@
-import { describe, test, check_is, check_Eq } from "../../source/index.js"
-import { readFile } from "node:fs/promises"
-import { absPathFromRel } from "../utils.js"
-import { run } from "../../source/run.js"
-import { report, toHuman } from "../../source/report.js"
-import { setColorsProto } from "../../source/colors/pure.js"
+import { describe, test, check_is, check_Eq, run } from "../source/index.js"
+import { toRelPathFromProjRoot } from "./utils.js"
+import { toHuman } from "../source/report.js"
+import "../source/colors/colors.js"
 
 const NL = "\n"
 const SEP = " | ".dim
 const INDENT = " ".repeat(3)
 
+const _toRelPathFromProjRoot = toRelPathFromProjRoot(import.meta.url)
 
-describe.skip("report()", () => {
 
-	test("prints a base test suite correctly", async () => {
+describe("report()", () => {
 
-		setColorsProto()
+	test.skip("prints a base test suite correctly", async () => {
 
 		const fixts = {
 			passedFiles: [
@@ -261,49 +259,7 @@ describe.skip("report()", () => {
 		}
 	})
 
-	test("prints diffs correctly", async () => {
-
-		const suites = ["./fixture.fail.diffs.js"]
-
-		let logs = await setup(suites)
-		logs = logs.join("")
-
-		const expectedDeepDiffs = [
-			"   \x1B[33mat 'k2':\x1B[39m\n",
-			"              \x1B[31m{\x1B[39m      \n" +
-			"      \x1B[31m  k: true\x1B[39m    \x1B[37m-\x1B[39m \n" +
-			"              \x1B[31m}\x1B[39m      \n",
-			"   \n",
-			"   \x1B[33mat 'k4' ▶ 'kk4' ▶ 'kk5':\x1B[39m\n",
-			"      \x1B[31m\x1B[4mno\x1B[24m\x1B[39m    \x1B[32m\x1B[4mye\x1B[24m\x1B[4ms\x1B[24m\x1B[39m \n",
-			"   \n",
-			"   \x1B[33mat 'k3':\x1B[39m\n",
-			"      \x1B[37m-\x1B[39m    \x1B[32m1\x1B[39m \n",
-			"   \n",
-			"   \x1B[33mat Symbol(k2):\x1B[39m\n",
-			"      \x1B[31mA\x1B[39m    \x1B[32mA\x1B[4mB\x1B[24m\x1B[39m \n",
-			"   \n",
-			"   \x1B[1m\x1B[33mExpected to be Deeply Equal\x1B[39m\x1B[22m\n",
-			"   \n",
-			"                      \x1B[31m{\x1B[39m                          \x1B[32m{\x1B[39m \n" +
-			"   \x1B[31m  [Symbol(k2)]: 'A',\x1B[39m      \x1B[32m  [Symbol(k2)]: 'AB',\x1B[39m \n" +
-			"                \x1B[31m  k2: {\x1B[39m                   \x1B[32m  k3: 1,\x1B[39m \n" +
-			"            \x1B[31m    k: true\x1B[39m                    \x1B[32m  k4: {\x1B[39m \n" +
-			"                   \x1B[31m  },\x1B[39m                 \x1B[32m    kk4: {\x1B[39m \n" +
-			"                \x1B[31m  k4: {\x1B[39m           \x1B[32m      kk5: 'yes'\x1B[39m \n" +
-			"             \x1B[31m    kk4: {\x1B[39m                      \x1B[32m    }\x1B[39m \n" +
-			"        \x1B[31m      kk5: 'no'\x1B[39m                        \x1B[32m  }\x1B[39m \n" +
-			"                  \x1B[31m    }\x1B[39m                          \x1B[32m}\x1B[39m \n" +
-			"                    \x1B[31m  }\x1B[39m                            \n" +
-			"                      \x1B[31m}\x1B[39m                            \n",
-		].join("")
-
-		check_is(logs.includes(expectedDeepDiffs), true)
-
-		cleanup()
-	})
-
-	test("files with no tests: prints correct info", async () => {
+	test.skip("files with no tests: prints correct info", async () => {
 
 		const fixt = ["./fixture.noTests.js"]
 		let logs = await setup(fixt)
@@ -324,18 +280,7 @@ describe.skip("report()", () => {
 	})
 
 
-	async function setup(testFilePath_s, reportOpts) {
-
-		testFilePath_s = testFilePath_s.map(p => absPathFromRel(import.meta.url, p))
-
-		const [suite, fileContent] = await Promise.all([
-			run(testFilePath_s),
-			getFilesAndContents(testFilePath_s),
-		])
-
-		for (const { path, content } of fileContent) {
-			suite.suites.get(path).file_content = content
-		}
+	async function setup(testFilePath_s) {
 
 		const origStdOutWrite = process.stdout.write
 		let logs = []
@@ -345,7 +290,7 @@ describe.skip("report()", () => {
 		process.stdout._$cols = process.stdout.columns
 		process.stdout.columns = 160
 
-		report(suite, reportOpts)
+		await run(testFilePath_s)
 
 		process.stdout.write = origStdOutWrite
 
@@ -401,15 +346,6 @@ test("toHuman()", () => {
 	check_is(rec, exp)
 })
 
-
-async function getFilesAndContents(absPaths) {
-	return Promise.all(absPaths.map(async path => {
-		return {
-			path,
-			content: await readFile(path, "utf8"),
-		}
-	}))
-}
 
 function checkMultLines(expectedLines, logs, i) {
 	const expectedLinesLength = expectedLines.length
