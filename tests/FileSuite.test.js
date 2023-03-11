@@ -1,14 +1,18 @@
-import { describe, it, check_Eq as _check_Eq_ } from "../source/index.js"
-import { objToSuite, group, test, buildTestID as ID } from "../source/suite.js"
-import { SOPHI } from "../source/utils.js"
+import {
+	describe, it,
+	group, test,
+	check_Eq as _check_Eq_,
+ } from "../source/index.js"
+import { objToSuite } from "../source/FileSuite.js"
+import { GLOB_SOPHI_K } from "../source/utils.js"
 import { fn1, fn2, fn3, fn4, fn5 } from "./utils.js"
 
 
-const {suite} = globalThis[SOPHI]
+const {collector} = globalThis[GLOB_SOPHI_K]
 
 it("returns default schema for empty tests", () => {
 
-	const rec = suite.pullSuite()
+	const rec = collector.pullSuite()
 
 	const exp = toFileSuiteSchema({
 		n_Tests: 0,
@@ -31,7 +35,7 @@ it("simple nesting", () => {
 	})
 	test("test 5", fn5)
 
-	const rec = suite.pullSuite()
+	const rec = collector.pullSuite()
 
 	const exp = toFileSuiteSchema({
 		runnable: [
@@ -49,26 +53,25 @@ it("simple nesting", () => {
 
 describe("modifiers", () => {
 
-	describe("one(): exclusively a single one() (test or group) is ran. The latest declared takes precedence", () => {
+	describe("only(): exclusively a single only() (test or group) is ran. The latest declared takes precedence", () => {
 
 		it("with tests being the last", () => {
 
 			group("a", () => {
-				test.skip("test 1", () => { })   // ignored
-				test.just("test 2", () => { })   // ignored
-				test.todo("test 3")              // ignored
-				test.one("test 4", () => { })    // ignored
-				test.one("test 5", fn5)          // runs
+				test.skip("test 1", () => { })    // ignored
+				test.todo("test 3")               // ignored
+				test.only("test 4", () => { })    // ignored
+				test.only("test 5", fn5)          // runs
 			})
 
-			const rec = suite.pullSuite()
+			const rec = collector.pullSuite()
 
 			const exp = toFileSuiteSchema({
 				runnable: [
 					[ID(["a"], "test 5"), fn5],
 				],
 				n_Tests: 1,
-				oneOrJustUsed: "one",
+				onlyUsed: true,
 			})
 
 			_check_Eq_(rec, exp)
@@ -77,21 +80,20 @@ describe("modifiers", () => {
 		it("with tests not being the last", () => {
 
 			group("a", () => {
-				test.skip("test 1", () => {})   // ignored
-				test.just("test 2", () => {})   // ignored
-				test.one("test 4", fn4)         // runs
-				test.todo("test 3")             // ignored
-				test("test 5", () => {})        // ignored
+				test.skip("test 1", () => {})    // ignored
+				test.only("test 4", fn4)         // runs
+				test.todo("test 3")              // ignored
+				test("test 5", () => {})         // ignored
 			})
 
-			const rec = suite.pullSuite()
+			const rec = collector.pullSuite()
 
 			const exp = toFileSuiteSchema({
 				runnable: [
 					[ID(["a"], "test 4"), fn4],
 				],
 				n_Tests: 1,
-				oneOrJustUsed: "one",
+				onlyUsed: true,
 			})
 
 			_check_Eq_(rec, exp)
@@ -100,45 +102,46 @@ describe("modifiers", () => {
 		it("with tests inside groups", () => {
 
 			group("a", () => {
-				group.one("aa", () => {
-					test.one("test 2", () => { })   // ignored
-					test("test 3", () => { })       // ignored
+				group.only("aa", () => {
+					test.only("test 2", () => { })   // ignored
+					test("test 3", () => { })        // ignored
 				})
-				group.one("aa", () => {
-					test.one("test 4", () => { })   // ignored
-					test("test 5", () => { })       // ignored
+
+				group.only("aa", () => {
+					test.only("test 4", () => { })   // ignored
+					test("test 5", () => { })        // ignored
 				})
-				test.one("test 1", fn1)      // runs
+				test.only("test 1", fn1)            // runs
 			})
 
-			const rec = suite.pullSuite()
+			const rec = collector.pullSuite()
 
 			const exp = toFileSuiteSchema({
 				runnable: [
 					[ID(["a"], "test 1"), fn1],
 				],
 				n_Tests: 1,
-				oneOrJustUsed: "one",
+				onlyUsed: true,
 			})
 
 			_check_Eq_(rec, exp)
 
 		})
 
-		it("one group after the other", () => {
+		it("only() group after the other only() group", () => {
 
 			group("a", () => {
-				group.one("aa", () => {
-					test.one("test 2", () => { })   // ignored
-					test("test 3", () => { })       // ignored
+				group.only("aa", () => {
+					test.only("test 2", () => {})   // ignored
+					test("test 3", () => {})        // ignored
 				})
-				group.one("aa", () => {
+				group.only("aa", () => {
 					test("test 4", fn4)       // runs
 					test("test 5", fn5)       // runs
 				})
 			})
 
-			const rec = suite.pullSuite()
+			const rec = collector.pullSuite()
 
 			const exp = toFileSuiteSchema({
 				runnable: [
@@ -146,7 +149,7 @@ describe("modifiers", () => {
 					[ID(["a", "aa"], "test 5"), fn5],
 				],
 				n_Tests: 2,
-				oneOrJustUsed: "one",
+				onlyUsed: true,
 			})
 
 			_check_Eq_(rec, exp)
@@ -157,80 +160,20 @@ describe("modifiers", () => {
 			group("a", () => {
 				group.skip("aa", () => {
 					test("test 1", () => { })     // ignored
-					test.one("test 2", fn2)      // runs
+					test.only("test 2", fn2)      // runs
 					test.todo("test 4")          // ignored
 				})
 				test.skip("test 6", () => { })   // ignored
-				test.just("test 3", () => { })   // ignored
 			})
 
-			const rec = suite.pullSuite()
+			const rec = collector.pullSuite()
 
 			const exp = toFileSuiteSchema({
 				runnable: [
 					[ID(["a", "aa"], "test 2"), fn2],
 				],
 				n_Tests: 1,
-				oneOrJustUsed: "one",
-			})
-
-			_check_Eq_(rec, exp)
-		})
-	})
-
-	describe("just(): all just() are ran. The rest of modifiers are ignored except one() which takes precedence", () => {
-
-		it("with tests", () => {
-
-			group("a", () => {
-				test.skip("test 1", () => { })   // ignored
-				test.just("test 2", fn2)         // runs
-				test.todo("test 3")              // ignored
-				test.just("test 4", fn4)         // runs
-			})
-
-			const rec = suite.pullSuite()
-
-			const exp = toFileSuiteSchema({
-				runnable: [
-					[ID(["a"], "test 2"), fn2],
-					[ID(["a"], "test 4"), fn4],
-				],
-				n_Tests: 2,
-				oneOrJustUsed: "just",
-			})
-
-			_check_Eq_(rec, exp)
-		})
-
-		it("with tests inside groups", () => {
-
-			group("a", () => {
-				group.just("aa", () => {
-					test("test 1", fn1)              // runs
-					test("test 2", fn2)              // runs
-				})
-				group.just("aa", () => {
-					test.just("test 3", fn3)         // runs
-					test.skip("test 7", () => { })    // ignored
-					test.todo("test 8")              // ignored
-					test("test 4", fn4)              // runs
-				})
-				test.skip("test 5", () => { })       // ignored
-				test.todo("test 6")                 // ignored
-			})
-
-			const rec = suite.pullSuite()
-
-			const exp = toFileSuiteSchema({
-				runnable: [
-					[ID(["a", "aa"], "test 1"), fn1],
-					[ID(["a", "aa"], "test 2"), fn2],
-					[ID(["a", "aa"], "test 3"), fn3],
-					[ID(["a", "aa"], "test 4"), fn4],
-				],
-				n_Tests: 4,
-				oneOrJustUsed: "just",
+				onlyUsed: true,
 			})
 
 			_check_Eq_(rec, exp)
@@ -246,7 +189,7 @@ describe("modifiers", () => {
 				test("test 2", fn2)             // runs
 			})
 
-			const rec = suite.pullSuite()
+			const rec = collector.pullSuite()
 
 			const exp = toFileSuiteSchema({
 				runnable: [
@@ -274,7 +217,7 @@ describe("modifiers", () => {
 				test.skip("test 4", () => { })       // skip
 			})
 
-			const rec = suite.pullSuite()
+			const rec = collector.pullSuite()
 
 			const exp = toFileSuiteSchema({
 				runnable: [
@@ -301,7 +244,7 @@ describe("modifiers", () => {
 			})
 			test.todo("test 2")
 
-			const rec = suite.pullSuite()
+			const rec = collector.pullSuite()
 
 			const exp = toFileSuiteSchema({
 				todo: [
@@ -321,7 +264,7 @@ describe("modifiers", () => {
 			})
 			test.todo("test 2")
 
-			const rec = suite.pullSuite()
+			const rec = collector.pullSuite()
 
 			const exp = toFileSuiteSchema({
 				todo: [
@@ -334,7 +277,6 @@ describe("modifiers", () => {
 		})
 	})
 })
-
 
 describe("object api", () => {
 
@@ -382,7 +324,7 @@ describe("object api", () => {
 })
 
 
-function toFileSuiteSchema({runnable, skip, todo, oneOrJustUsed, n_Tests}) {
+function toFileSuiteSchema({runnable, skip, todo, n_Tests, onlyUsed}) {
 
 	let fileSuite = {
 		clusters: {
@@ -390,9 +332,10 @@ function toFileSuiteSchema({runnable, skip, todo, oneOrJustUsed, n_Tests}) {
 			skip: skip ? new Set(skip) : new Set(),
 			todo: todo ? new Set(todo) : new Set(),
 		},
-		oneOrJustUsed: oneOrJustUsed || false,
 		n_Tests,
 	}
+
+	if (onlyUsed) fileSuite.onlyUsed = true
 
 	return fileSuite
 }

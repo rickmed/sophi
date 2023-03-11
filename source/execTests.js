@@ -2,34 +2,22 @@ export async function execTests(suite) {
 
 	const startTime = Date.now()
 
-	for (const [, fileSuite] of suite.suites) {
+	for (const [, fileSuite] of suite.fileSuites) {
 
-		const {clusters} = fileSuite
-		const {runnable} = clusters
+		for (const [, test] of fileSuite.tests) {
 
-		const failed = runnable
-		clusters.failed = failed
+			const testFn = test.fn
 
-		delete clusters.runnable
-
-		const passed = new Set()
-		clusters.passed = passed
-
-		for (const [testID, testFn] of runnable) {
 			try {
-
 				if (testFn.constructor.name === "AsyncFunction") {
 					await testFn()
 				}
 				else {
 					testFn()
 				}
-
-				passed.add(testID)
-				failed.delete(testID)
 			}
 			catch (err) {
-				failed.set(testID, err)
+				fileSuite.testFailed(test, err)
 			}
 		}
 	}

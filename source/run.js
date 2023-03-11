@@ -5,21 +5,19 @@ import { report } from "./report.js"
 import { stringifyFailsData } from "./stringifyFailsData.js"
 
 
-export async function run(filePath_s, projectRoot = process.cwd()) {
+export async function run(filePath_s, opts) {
 
-	let suite = Suite(projectRoot)
+	let suite = Suite(opts)
 
 	await collectSuites(suite, filePath_s)
-	await execTests(suite)
+	await execTests(suite, opts)
 	await stringifyFailsData(suite)
 	report(suite)
 }
 
-export function Suite(projectRoot = process.cwd()) {
+export function Suite({projectRoot = process.cwd()} = {}) {
 	return {
 		durations: {},
-		oneOrJustUsed: false,
-		suites: undefined,
 		absPathFromProjRootDir(filePath) {
 			return path.join(projectRoot, filePath)
 		},

@@ -2,7 +2,6 @@ import { readFile } from "node:fs/promises"
 import { EOL } from "node:os"
 import { inspect } from "node:util"
 import { ERR_ASSERTION_SOPHI, OP, EMPTY } from "./check.js"
-import { fullTestStr } from "./utils.js"
 import "./colors/colors.js"
 
 const NL = "\n"
@@ -34,15 +33,15 @@ suites:: Map ('/projecRoot/tests/testFile.test.js' -> {
 */
 export async function stringifyFailsData(suite) {
 	await addFileContents(suite)
-	_stringifyFailsData(suite.suites)
+	_stringifyFailsData(suite.fileSuites)
 }
 
 
 async function addFileContents(suite) {
-	const { suites } = suite
+	const { fileSuites } = suite
 
 	let path_s = []
-	for (const [filePath] of suites) {
+	for (const [filePath] of fileSuites) {
 		path_s.push([filePath, suite.absPathFromProjRootDir(filePath)])
 	}
 
@@ -54,35 +53,38 @@ async function addFileContents(suite) {
 	}))
 
 	for (const { filePath, content } of res) {
-		suites.get(filePath).file_content = content
+		fileSuites.get(filePath).file_content = content
 	}
 }
 
-function _stringifyFailsData(suites) {
+function _stringifyFailsData(fileSuites) {
 
-	for (const [filePath, fileSuite] of suites) {
-
-		const { file_content, clusters: { failed } } = fileSuite
+	for (const [filePath, fileSuite] of fileSuites) {
+		const {file_content, failedTests, groups} = fileSuite
 
 		const fileContentLinesArr = file_content.split(EOL)
 
-		for (const [testID, testErr] of failed) {
+		for (let test of failedTests) {
 
-			const failLoc = getFailLocation(testErr, filePath)
+			const {err} = test
+
+			const failLoc = getFailLocation(err, filePath)
 
 			let errStr = ""
-			errStr += fullTestStr(testID).yellow
-			errStr += NL + NL
-			errStr += AssertionZone_Str(failLoc.line, fileContentLinesArr)
-			errStr += NL + NL
-			errStr += ErrorDiagnostics_Str(testErr)
-			errStr += NL + NL
-			errStr += stack_Str(testErr)
 
-			failed.set(testID, { failLoc, failMsg: errStr })
+			const groupNamePath = groups.get(test.g).namePath
+			errStr += [...groupNamePath, test.name].join(" ▶ ").yellow.thick
+			errStr += NL + NL
+			errStr += indentStr(AssertionZone_Str(failLoc.line, fileContentLinesArr))
+			errStr += NL + NL
+			errStr += ErrorDiagnostics_Str(err)
+			errStr += NL + NL
+			errStr += stack_Str(err)
+
+			test.failLoc = failLoc
+			test.failMsg = errStr
 		}
 	}
-
 
 	function getFailLocation(testErr, filePath) {
 
@@ -103,7 +105,6 @@ function _stringifyFailsData(suites) {
 			col: Number(col),
 		}
 	}
-
 
 	function AssertionZone_Str(failLine, fileContentLinesArr, printNLines = 3) {
 
@@ -154,8 +155,8 @@ function ErrorDiagnostics_Str(testErr) {
 			operator === OP.SATISFIES ? Satisfies_Str(testErr) :
 				operator === OP.CHECK ? Check_Str(testErr) :
 					message.yellow
-		str += NL
-		str += Comparates_Str(expected, received)
+		str += NL + NL
+		str += indentStr(Comparates_Str(expected, received))
 	}
 	else {
 		str += inspect(testErr)

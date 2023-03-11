@@ -1,4 +1,4 @@
-import { group, test } from "../source/suite.js"
+import { group, test } from "../source/index.js"
 import { fn1 } from "./utils.js"
 
 
@@ -7,5 +7,5 @@ group("a", () => {
 })
 
 group("b", () => {
-	test.one("test b", fn1)
+	test.only("test b", fn1)
 })

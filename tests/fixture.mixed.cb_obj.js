@@ -1,4 +1,4 @@
-import { group, test } from "../source/suite.js"
+import { group, test } from "../source/index.js"
 import { fn1 } from "./utils.js"
 
 

@@ -1,3 +1,3 @@
-import { test } from "../source/suite.js"
+import { test } from "../source/index.js"
 
 test.todo("Test title")

@@ -1,4 +1,4 @@
-import { SOPHI } from "./utils.js"
+import { GLOB_SOPHI_K } from "./utils.js"
 
 export const OP = {
 	CHECK: "check",
@@ -10,6 +10,7 @@ export const OP = {
 	NOT_THROWS: "check_NotThrows",
 	THROWS_ASYNC: "check_ThrowsAsync",
 	SATISFIES: "check_satisfies",
+	USER_FAIL: "check_UserFail",
 }
 export const MSG = {
 	CHECK: "Expected to pass spec",
@@ -21,6 +22,7 @@ export const MSG = {
 	NOT_THROWS: "Expected function NOT to Throw",
 	THROWS_ASYNC: "Expected function to Throw Async",
 	SATISFIES: "Expected to pass validator function",
+	USER_FAIL: "Test failed with fail()",
 }
 
 export const ERR_ASSERTION_SOPHI = "SophiAssertionError"
@@ -137,6 +139,10 @@ export async function check_ThrowsAsync(fn, userMsg) {
 	throw new CheckErr({ rec: undefined, exp: undefined, op: OP.THROWS_ASYNC, msg: userMsg || MSG.THROWS_ASYNC})
 }
 
+export function fail(userMsg, {rec, exp}) {
+	throw new CheckErr({ rec, exp, op: OP.USER_FAIL, msg: userMsg || MSG.USER_FAIL})
+}
+
 
 function _satisfies(rec, fn, fnArgs, userMsg) {
 
@@ -198,7 +204,7 @@ export function strict(objOrMap) {
 }
 
 
-export const EMPTY = `empty_${SOPHI}`
+export const EMPTY = Symbol("empty")
 
 function Diff_Leaf(rec, exp) {
 	return { type: "Leaf", rec, exp }

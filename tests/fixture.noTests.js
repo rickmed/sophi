@@ -1,4 +1,4 @@
-import { group } from "../source/suite.js"
+import { group } from "../source/index.js"
 
 group("a", () => {
 })

@@ -1,6 +1,5 @@
 import { Console } from "node:console"
 import Table from "cli-table3"
-import { fullTestStr } from "./utils.js"
 import "./colors/colors.js"
 
 const TABLE_OPTS = {
@@ -13,64 +12,38 @@ const TABLE_OPTS = {
 	style: {},
 }
 
-const { print, indent, outdent } = helpers()
+const { print, indent, outdent } = printHelpers()
 
-/* in:
-suite:: {
-	suites:: Map ('/projecRoot/tests/testFile.test.js' -> {
-		clusters: {
-			failed:: testID -> {failLoc: {col, line}, failMsg},
-			passed:: Set(testID),
-			skip:: Set(testID),
-			todo:: Set(testID),
-		},
-		n_Tests: number,
-	})
-	oneOrJustUsed: false | "one" | "just",
-	durations:: {
-		collect: ms,
-		tests: ms,
-	}
-}
-*/
 export function report(suite) {
 
 	const startTime = Date.now()
 
 	print_nl()
-	print_SummaryPerFile(suite.suites)
-	print_FailedTests(suite.suites)
+	print_SummaryPerFile(suite.fileSuites)
+	print_FailedTests(suite.fileSuites)
 	print_Summary(suite)
 
-	function print_SummaryPerFile(suites) {
+	function print_SummaryPerFile(fileSuites) {
 
 		let tableOpts = copy(TABLE_OPTS)
 		tableOpts.style["padding-right"] = 0
 		tableOpts.style["padding-left"] = 0
 		let table = new Table(tableOpts)
 
-		for (const [filePath, {n_Tests, clusters: {failed, passed, skip, todo}}] of suites) {
-
-			const n_FailT = failed.size
-			const n_PassT = passed.size
-			const n_SkipT = skip.size
-			const n_TodoT = todo.size
+		for (const [filePath, {n_Tests, n_FailT, n_PassT, n_SkipT, n_TodoT}] of fileSuites) {
 
 			let tableRow = []
 
-			let fileMark
+			let fileMark = "✔ ".green
 
 			if (n_FailT > 0) {
 				fileMark = "✘ ".red
 			}
-			else if (n_SkipT === n_Tests) {
+			if (n_SkipT === n_Tests) {
 				fileMark = "❯❯ ".yellow
 			}
-			else if (n_TodoT === n_Tests) {
+			if (n_TodoT === n_Tests) {
 				fileMark = "[] ".blue
-			}
-			else {
-				fileMark = "✔ ".green
 			}
 
 			tableRow.push({ content: fileMark + filePath, style: { ["padding-right"]: 2 } })
@@ -98,10 +71,9 @@ export function report(suite) {
 		print_nl(2)
 	}
 
-	function print_FailedTests(suites) {
-		for (const [filePath, {clusters: {failed}}] of suites) {
-			for (const [, {failLoc: {line, col}, failMsg}] of failed) {
-
+	function print_FailedTests(fileSuites) {
+		for (const [filePath, fileSuite] of fileSuites) {
+			for (const {failLoc: {line, col}, failMsg} of fileSuite.failedTests) {
 				print(`${" Fail ".red.inverse} ${`${filePath}:${line}:${col}`.red.thick} ${"─".repeat(50).red}`)
 				print_nl()
 				indent()
@@ -114,7 +86,7 @@ export function report(suite) {
 
 	function print_Summary(suite) {
 
-		const summary = summarize(suite.suites)
+		const summary = summarize(suite.fileSuites)
 
 		let tableOpts = copy(TABLE_OPTS)
 		tableOpts.colWidths = [13]
@@ -126,16 +98,15 @@ export function report(suite) {
 		const line = " " + "─".repeat(Math.floor(process.stdout.columns * 0.75))
 		print(" Summary ".inverse + line)
 		print_nl()
-		print_oneOrJustUsed()
-		print_filesWithNoTests()
-		print_todoFiles()
-		print_testsAndFilesSummary()
+		print_onlyUsed()
+		print_FilesWithNoTests()
+		print_TestsAndFilesSummary()
 		print_nl()
-		print_duration()
+		print_Duration()
 		print_nl(2)
 
 
-		function summarize(suites) {
+		function summarize(fileSuites) {
 
 			let filesWithNoTests = new Set()
 			let n_FailedFiles = 0
@@ -148,34 +119,32 @@ export function report(suite) {
 			let n_SkippedTests = 0
 			let n_TodoTests = 0
 
-			for (const [filePath, fileSuite] of suites) {
-				const { clusters, n_Tests } = fileSuite
+			for (const [filePath, fileSuite] of fileSuites) {
+				const {n_Tests, n_FailT, n_PassT, n_SkipT, n_TodoT} = fileSuite
 
 				if (n_Tests === 0) {
 					filesWithNoTests.add(filePath)
 					continue
 				}
 
-				const { failed, passed, skip, todo } = clusters
+				n_FailedTests += n_FailT
+				n_PassedTests += n_PassT
+				n_SkippedTests += n_SkipT
+				n_TodoTests += n_TodoT
 
-				n_FailedTests += failed.size
-				n_PassedTests += passed.size
-				n_SkippedTests += skip.size
-				n_TodoTests += todo.size
-
-				if (failed.size === 0) {
+				if (n_FailT === 0) {
 					n_PassedFiles++
 				}
 				else {
 					n_FailedFiles++
 				}
 
-				if (skip.size === n_Tests) {
+				if (n_SkipT === n_Tests) {
 					n_SkippedFiles++
 					continue
 				}
 
-				if (todo.size === n_Tests) {
+				if (n_TodoT === n_Tests) {
 					n_TodoFiles++
 					continue
 				}
@@ -188,33 +157,21 @@ export function report(suite) {
 			}
 		}
 
-		function print_oneOrJustUsed() {
+		function print_onlyUsed() {
 
-			if (suite.oneOrJustUsed === "one") {
+			if (suite.onlyUsed) {
 				let filePath
-				for (const entry of suite.suites) {
+				for (const entry of suite.fileSuites) {
 					filePath = entry[0]
 				}
 				indent()
-				print(`⚠️ ${"one".italic.thick} modifier used in ${filePath.thick}`.yellow)
-				outdent()
-				print_nl()
-			}
-
-			if (suite.oneOrJustUsed === "just") {
-				indent()
-				print(`⚠️ ${"just".italic.thick} modifier used in: `.yellow)
-				indent()
-				for (let [filePath] of suite.suites) {
-					print(`⚠️ ${filePath}`.yellow)
-				}
-				outdent()
+				print(`⚠️ ${"only".italic.thick} modifier used in ${filePath.thick}`.yellow)
 				outdent()
 				print_nl()
 			}
 		}
 
-		function print_filesWithNoTests() {
+		function print_FilesWithNoTests() {
 			const { filesWithNoTests } = summary
 
 			if (filesWithNoTests.size > 0) {
@@ -230,27 +187,7 @@ export function report(suite) {
 			}
 		}
 
-		function print_todoFiles() {
-			if (summary.n_TodoTests === 0) return
-
-			indent()
-			print("🖊️ Todo tests: ".blue)
-			indent()
-			for (const [filePath, { clusters: { todo } }] of suite.suites) {
-				if (todo.size === 0) continue
-				print(`● ${filePath}`.blue)
-				indent()
-				for (const testID of todo) {
-					print(`[] ${fullTestStr(testID).blue}`.blue)
-				}
-				outdent()
-			}
-			outdent()
-			outdent()
-			print_nl()
-		}
-
-		function print_testsAndFilesSummary() {
+		function print_TestsAndFilesSummary() {
 
 			let {
 				n_FailedFiles: fail_F, n_PassedFiles: pass_F, n_SkippedFiles: skip_F, n_TodoFiles: todo_F,
@@ -297,7 +234,7 @@ export function report(suite) {
 			print(table.toString())
 		}
 
-		function print_duration() {
+		function print_Duration() {
 
 			let { durations: { collect: collectDuration, test: testsDuration } } = suite
 
@@ -327,11 +264,11 @@ function copy(obj) {
 	return JSON.parse(JSON.stringify(obj))
 }
 
-function helpers() {
+function printHelpers() {
 
 	const _console = new Console({
 		stdout: process.stdout,
-		groupIndentation: 3,
+		groupIndentation: 2,
 	})
 
 	const print = _console.log

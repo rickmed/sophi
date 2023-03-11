@@ -1,4 +1,4 @@
-import { describe, test, check_is, check_Eq, run } from "../source/index.js"
+import { describe, test, check_is, check_Eq, fail, run } from "../source/index.js"
 import { toRelPathFromProjRoot } from "./utils.js"
 import { toHuman } from "../source/report.js"
 import "../source/colors/colors.js"
@@ -249,10 +249,10 @@ describe("report()", () => {
 			}
 
 			if (found.length === 0) {
-				throw new Error(`section not found in report logs \n ${str}`)
+				fail(`section not found in report logs \n ${str}`)
 			}
 			if (found.length > 1) {
-				throw new Error(`two identical messages printed in report logs \n ${str}`)
+				fail(`two identical messages printed in report logs \n ${str}`)
 			}
 
 			return found[0].i
@@ -281,6 +281,8 @@ describe("report()", () => {
 
 
 	async function setup(testFilePath_s) {
+
+		testFilePath_s = testFilePath_s.map(_toRelPathFromProjRoot)
 
 		const origStdOutWrite = process.stdout.write
 		let logs = []

@@ -1,5 +1,5 @@
 import { check_Eq, check_is } from "../source/check.js"
-import { group, test } from "../source/suite.js"
+import { group, test } from "../source/index.js"
 
 group("group1", () => {
 	test("Test title", () => {

@@ -6,12 +6,13 @@ export {
 	check_NotEq,
 	check_Throws, check_NotThrows,
 	check_ThrowsAsync,
+	fail,
 } from "./check.js"
 
 export {
 	group, describe, topic,
 	test, it,
-} from "./suite.js"
+} from "./FileSuite.js"
 
 export { run } from "./run.js"
 

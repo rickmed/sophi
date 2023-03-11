@@ -1,6 +1,6 @@
 import { strict as assert } from "node:assert"
 import { check_is } from "../source/check.js"
-import { test } from "../source/suite.js"
+import { test } from "../source/index.js"
 
 test("Example test title", () => {
 	assert.equal(1, 1)
