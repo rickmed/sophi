@@ -5,33 +5,14 @@ import { ERR_ASSERTION_SOPHI, OP, EMPTY } from "./check.js"
 import "./colors/colors.js"
 
 const NL = "\n"
+const NLx2 = NL + NL
 const INDENT = "  "
 
 /*
-in:
-suites:: Map ('/projecRoot/tests/testFile.test.js' -> {
-	clusters: {
-		failed:: testID -> err,
-		passed:: Set(testID),
-		skip:: Set(testID),
-		todo:: Set(testID),
-	},
-	n_Tests: number,
-})
-
-out:
-suites:: Map ('/projecRoot/tests/testFile.test.js' -> {
-	clusters: {
-		failed:: testID -> {failLoc: {col, line}, failMsg},
-		passed:: Set(testID),
-		skip:: Set(testID),
-		todo:: Set(testID),
-	},
-	n_Tests: number,
-	file_content:: string,
-})
+in: test::  {ID::int, name, fn, g: groupID, err}
+out: test:: {...failMsg, failLine, failCol}
 */
-export async function stringifyFailsData(suite) {
+export async function failTestToStr(suite) {
 	await addFileContents(suite)
 	_stringifyFailsData(suite.fileSuites)
 }
@@ -60,6 +41,7 @@ async function addFileContents(suite) {
 function _stringifyFailsData(fileSuites) {
 
 	for (const [filePath, fileSuite] of fileSuites) {
+
 		const {file_content, failedTests, groups} = fileSuite
 
 		const fileContentLinesArr = file_content.split(EOL)
@@ -68,22 +50,25 @@ function _stringifyFailsData(fileSuites) {
 
 			const {err} = test
 
-			const failLoc = getFailLocation(err, filePath)
+			const [line, col] = getFailLocation(err, filePath)
 
 			let errStr = ""
 
-			const groupNamePath = groups.get(test.g).namePath
-			errStr += [...groupNamePath, test.name].join(" ▶ ").yellow.thick
-			errStr += NL + NL
-			errStr += indentStr(AssertionZone_Str(failLoc.line, fileContentLinesArr))
-			errStr += NL + NL
+			const groupNamePath = test.g ? groups.get(test.g).namePath : []
+			errStr += fullTestTitleToStr([...groupNamePath, test.name])
+			errStr += NLx2
+			errStr += indentStr(AssertionZone_Str(line, fileContentLinesArr))
+			errStr += NLx2
 			errStr += ErrorDiagnostics_Str(err)
-			errStr += NL + NL
+			errStr += NLx2
 			errStr += stack_Str(err)
 
-			test.failLoc = failLoc
+			test.failLine = line
+			test.failCol = col
 			test.failMsg = errStr
 		}
+
+		delete fileSuite.file_content
 	}
 
 	function getFailLocation(testErr, filePath) {
@@ -100,10 +85,7 @@ function _stringifyFailsData(fileSuites) {
 		const line = failLine[failLine.length - 2]
 		const col = failLine[failLine.length - 1].replaceAll(")", "")
 
-		return {
-			line: Number(line),
-			col: Number(col),
-		}
+		return [Number(line), Number(col)]
 	}
 
 	function AssertionZone_Str(failLine, fileContentLinesArr, printNLines = 3) {
@@ -155,8 +137,8 @@ function ErrorDiagnostics_Str(testErr) {
 			operator === OP.SATISFIES ? Satisfies_Str(testErr) :
 				operator === OP.CHECK ? Check_Str(testErr) :
 					message.yellow
-		str += NL + NL
-		str += indentStr(Comparates_Str(expected, received))
+		str += NLx2
+		str += Comparates_Str(expected, received)
 	}
 	else {
 		str += inspect(testErr)
@@ -172,15 +154,19 @@ function ErrorDiagnostics_Str(testErr) {
 		const opts = { depth: 50, compact: false, colors: true, sorted: true }
 
 		str += "Expected".green.thick
-		str += NL + NL
-		str += indentStr(inspect(exp, opts))
-		str += NL + NL
+		str += NLx2
+		str += indentStr(typeof exp === "string" ? exp : inspect(exp, opts))
+		str += NLx2
 		str += "Received".red.thick
-		str += NL + NL
-		str += indentStr(inspect(rec, opts))
+		str += NLx2
+		str += indentStr(typeof rec === "string" ? rec : inspect(rec, opts))
 
 		return str
 	}
+}
+
+export function fullTestTitleToStr(fullNameArr) {
+	return fullNameArr.map(n => n.yellow).join(" ▶ ".red)
 }
 
 export function Satisfies_Str(testErr) {
@@ -193,8 +179,8 @@ export function Satisfies_Str(testErr) {
 		sorted: true,
 	}
 
-	let ind = INDENT
-	let indx2 = ind + ind
+	let indent = INDENT
+	let indx2 = indent + indent
 
 	let headline = ""
 	let expMsg = ""
@@ -203,15 +189,17 @@ export function Satisfies_Str(testErr) {
 
 		headline += `Expected to pass ${validatorName.thick}`
 
-		const green = " ".inverse.green
+		const greenMark = " ".inverse.green
 
 		if (args) {
 
 			headline += " with arguments"
 
 			for (const k in args) {
-				expMsg += green + ind + k + ":" + NL
-				expMsg += green + indx2 + inspect(args[k], opts) + NL
+				expMsg += greenMark + indent + k + ":" + NL
+				const argVal = args[k]
+				const argVal_asStr = typeof argVal === "string" ? argVal : inspect(args[k], opts)
+				expMsg += greenMark + indx2 + argVal_asStr
 			}
 		}
 
@@ -221,10 +209,12 @@ export function Satisfies_Str(testErr) {
 		headline = (userMsg + ":").yellow
 	}
 
-	const recStr = inspect(testErr.received, opts).split(NL)
-		.map(l => "▓".inverse.red + " " + l).join(NL)
+	const rec = testErr.received
+	let recStr = typeof rec === "string" ? rec : inspect(testErr.received, opts)
 
-	return headline + NL + expMsg + recStr
+	recStr = recStr.split(NL).map(l => "▓".inverse.red + " " + l).join(NL)
+
+	return headline + NLx2 + indentStr(expMsg) + NLx2 + indentStr(recStr)
 }
 
 export function Check_Str(testErr) {
@@ -239,17 +229,17 @@ export function Check_Str(testErr) {
 		str += message.yellow
 	}
 
-	str += NL + NL + indentStr(buildIssuesMsg(issues))
+	str += NLx2 + indentStr(buildIssuesMsg(issues))
 
 	return str
 }
 
 function buildIssuesMsg(issues) {
 
-	const pathColor = "red"
+	const pathsColor = "red"
 
 	let str = ""
-	str += topBrace(issues.type)[pathColor]
+	if (issues.type !== "Leaf") str += topBrace(issues.type)[pathsColor]
 	str += NL
 	buildMsg(issues)
 	return str
@@ -286,10 +276,9 @@ function buildIssuesMsg(issues) {
 
 			if (bothCanStringDiff(exp, rec)) {
 				[recStr, expStr] = markStrsDiffs(exp, rec)
-				;[recStr, expStr] = [`'${recStr}'`, `'${expStr}'`]
 			}
 			else {
-				const opts = { depth: 50, compact: false, colors: false, sorted: true }
+				const opts = { depth: 50, compact: false, colors: true, sorted: true }
 				expStr = exp === EMPTY ? "" : inspect(exp, opts)
 				recStr = rec === EMPTY ? "" : inspect(rec, opts)
 			}
@@ -316,11 +305,11 @@ function buildIssuesMsg(issues) {
 			if (diffType === "Array") kStr += "["
 			if (diffType === "Map") kStr += "Map {"
 
-			str += (ind + kStr + NL)[pathColor]
+			str += (ind + kStr + NL)[pathsColor]
 		}
 		function addCloseBracket(type) {
 			let _str = type === "Array" ? "]" : "}"
-			str += ("  ".repeat(level - 1) + _str + NL)[pathColor]
+			str += ("  ".repeat(level - 1) + _str + NL)[pathsColor]
 		}
 	}
 }

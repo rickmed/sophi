@@ -1,7 +1,7 @@
 import { topic, test, check_Eq, check_ThrowsAsync } from "../source/index.js"
 import { toRelPathFromProjRoot, fn1 } from "./utils.js"
 import { collectSuites } from "../source/collectSuites.js"
-import { Suite } from "../source/run.js"
+import { newSuite } from "../source/run.js"
 
 const _toRelPathFromProjRoot = toRelPathFromProjRoot(import.meta.url)
 
@@ -59,7 +59,7 @@ topic("run()", () => {
 
 
 async function setup(filePath_s) {
-	const suite = Suite()
+	const suite = newSuite()
 	await collectSuites(suite, filePath_s)
 	return suite
 }

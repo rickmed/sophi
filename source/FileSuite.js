@@ -1,9 +1,6 @@
 import { GLOB_SOPHI_K } from "./utils.js"
 
-const MOD = {
-	ONLY: 1,
-	SKIP: 2,
-}
+const SKIP = 1
 
 export class FileSuite {
 
@@ -34,7 +31,7 @@ export class FileSuite {
 		*/
 
 		this.#resetSuite()
-		this.#groupStack = [{top: true}]    // top-level group (no group)
+		this.#groupStack = []
 		this.failedTests = new Set()
 	}
 
@@ -47,17 +44,9 @@ export class FileSuite {
 
 	openGroup(name, fn, mod) {
 
-		if (mod === MOD.ONLY) {
-			this.#resetSuite()
-		}
-
 		this.#groupStack.push({ name, mod })
 
 		fn()
-
-		if (mod === MOD.ONLY) {
-			this.onlyUsed = true
-		}
 
 		this.#groupStack.pop()
 	}
@@ -68,7 +57,7 @@ export class FileSuite {
 			return
 		}
 
-		if (this.#isLowestAncestorMod(MOD.SKIP)) {
+		if (this.#isLowestAncestorMod(SKIP)) {
 			this.addSkipTest(name)
 			return
 		}
@@ -77,6 +66,7 @@ export class FileSuite {
 	}
 
 	addOnlyTest(name, fn) {
+		this.#resetSuite()
 		this.onlyUsed = true
 		this.#addTest(name, fn)
 	}
@@ -99,21 +89,40 @@ export class FileSuite {
 
 		groupStack = groupStack || this.#groupStack
 
-		let currGroup = groupStack.at(-1)
+		let currStackGroup = groupStack.at(-1)
 
-		if (!currGroup.group) { 
-			const ID = this.#groupID++
-			const namePath = currGroup.top ? [] : groupStack.map(g => g.name)
-			const newGroup = {ID, namePath, tests: new Set()}
-			this.groups.set(ID, newGroup)
-			currGroup.group = newGroup
+		if (!currStackGroup) {  // file top-level (no group)
+			this.#addNewTest(name, fn)
+			return
 		}
 
-		const {group} = currGroup
+		if (!currStackGroup.group) {
+			currStackGroup.group = this.#addNewGroup(groupStack)
+		}
 
-		const testID = this.#testID++
-		group.tests.add(testID)
-		this.tests.set(testID, { ID: testID, name, fn, g: group.ID })
+		// when addOnlyTest() resets suite
+		if (this.groups.size === 0) {
+			this.groups.set(currStackGroup.group.ID, currStackGroup.group)
+		}
+
+		this.#addNewTest(name, fn, currStackGroup.group.ID)
+	}
+
+	#addNewTest(name, fn, groupID) {
+		const ID = this.#testID++
+		let newTest = {ID, name, fn}
+		if (groupID) {
+			newTest.g = groupID
+		}
+		this.tests.set(ID, newTest)
+		return newTest
+	}
+
+	#addNewGroup(groupStack) {
+		const ID = this.#groupID++
+		const newGroup = {ID, tests: new Set(), namePath: groupStack.map(g => g.name)}
+		this.groups.set(ID, newGroup)
+		return newGroup
 	}
 
 	#isLowestAncestorMod(mod) {
@@ -155,16 +164,10 @@ export function group(groupName, fn) {
 	globalThis[GLOB_SOPHI_K].fileSuite.openGroup(groupName, fn)
 }
 
-function groupOnly(groupName, fn) {
-	globalThis[GLOB_SOPHI_K].fileSuite.openGroup(groupName, fn, MOD.ONLY)
-}
-
 function groupSkip(groupName, fn) {
-	globalThis[GLOB_SOPHI_K].fileSuite.openGroup(groupName, fn, MOD.SKIP)
+	globalThis[GLOB_SOPHI_K].fileSuite.openGroup(groupName, fn, SKIP)
 }
 
-group.only = groupOnly
-group.$ = groupOnly
 group.skip = groupSkip
 
 
@@ -199,11 +202,11 @@ export {
 
 export function objToSuite(objSuite) {
 
-	const suite = new FileSuite()
+	const fileSuite = new FileSuite()
 
 	_objToSuite(objSuite, [])
 
-	return suite.pullSuite()
+	return fileSuite
 
 
 	function _objToSuite(obj, path) {
@@ -213,7 +216,8 @@ export function objToSuite(objSuite) {
 			const v = obj[k]
 
 			if (typeof v === "function") {
-				suite.addObjAPITest({ name: k, fn: v, groupStack: path })
+				console.log({path})
+				fileSuite.addObjAPITest({ name: k, fn: v, groupStack: path })
 				continue
 			}
 			else {

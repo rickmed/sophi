@@ -1,6 +1,6 @@
 import { topic, test, check, check_is } from "../source/index.js"
 import { EMPTY } from "../source/check.js"
-import { Check_Str, Satisfies_Str } from "../source/stringifyFailsData.js"
+import { Check_Str, Satisfies_Str } from "../source/failTestToStr.js"
 
 topic("buildSatisfiesMsg()", () => {
 

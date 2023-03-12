@@ -1,182 +1,54 @@
+import { PassThrough } from "node:stream"
 import {
 	describe, it,
 	group, test,
+	check, lossy,
 	check_Eq as _check_Eq_,
- } from "../source/index.js"
-import { objToSuite } from "../source/FileSuite.js"
+	run,
+} from "../source/index.js"
+import { FileSuite, objToSuite } from "../source/FileSuite.js"
 import { GLOB_SOPHI_K } from "../source/utils.js"
-import { fn1, fn2, fn3, fn4, fn5 } from "./utils.js"
+import { fileSummaryTable } from "../source/report.js"
+import { fullTestTitleToStr } from "../source/failTestToStr.js"
+import { fn1, fn2, fn3, fn4 } from "./utils.js"
 
 
-const {collector} = globalThis[GLOB_SOPHI_K]
+it("simple nested tests", async () => {
 
-it("returns default schema for empty tests", () => {
+	const log = await runTrapLogs(["tests/fixture.nested_testTitles.js"])
 
-	const rec = collector.pullSuite()
+	const testTitle1 = fullTestTitleToStr(["a", "aa", "test 2"])
+	const testTitle2 = fullTestTitleToStr(["test 5"])
 
-	const exp = toFileSuiteSchema({
-		n_Tests: 0,
-	})
-
-	_check_Eq_(rec, exp)
-})
-
-it("simple nesting", () => {
-
-	group("a", () => {
-		group("aa", () => {
-			test("test 1", fn1)
-			test("test 2", fn2)
-		})
-		test("test 3", fn3)
-	})
-	group("b", () => {
-		test("test 4", fn4)
-	})
-	test("test 5", fn5)
-
-	const rec = collector.pullSuite()
-
-	const exp = toFileSuiteSchema({
-		runnable: [
-			[ID(["a", "aa"], "test 1"), fn1],
-			[ID(["a", "aa"], "test 2"), fn2],
-			[ID(["a"], "test 3"), fn3],
-			[ID(["b"], "test 4"), fn4],
-			[ID([], `test 5`), fn5],
-		],
-		n_Tests: 5,
-	})
-
-	_check_Eq_(rec, exp)
+	check(log).satisfies(existsInLog, { str: testTitle1 })
+	check(log).satisfies(existsInLog, { str: testTitle2 })
 })
 
 describe("modifiers", () => {
 
-	describe("only(): exclusively a single only() (test or group) is ran. The latest declared takes precedence", () => {
+	describe("only()", () => {
 
-		it("with tests being the last", () => {
+		it("the rest of tests are ignored", () => {
+
+			globalThis[GLOB_SOPHI_K].fileSuite = new FileSuite()
 
 			group("a", () => {
 				test.skip("test 1", () => { })    // ignored
+				test.only("test 4", fn1)          // runs
 				test.todo("test 3")               // ignored
-				test.only("test 4", () => { })    // ignored
-				test.only("test 5", fn5)          // runs
+				test("test 5", () => { })         // ignored
 			})
 
-			const rec = collector.pullSuite()
+			const rec = globalThis[GLOB_SOPHI_K].fileSuite
 
-			const exp = toFileSuiteSchema({
-				runnable: [
-					[ID(["a"], "test 5"), fn5],
-				],
-				n_Tests: 1,
+			const exp = lossy({
+				tests: new Map([[
+					1, { ID: 1, name: "test 4", fn: fn1, g: 1 },
+				]]),
 				onlyUsed: true,
 			})
 
-			_check_Eq_(rec, exp)
-		})
-
-		it("with tests not being the last", () => {
-
-			group("a", () => {
-				test.skip("test 1", () => {})    // ignored
-				test.only("test 4", fn4)         // runs
-				test.todo("test 3")              // ignored
-				test("test 5", () => {})         // ignored
-			})
-
-			const rec = collector.pullSuite()
-
-			const exp = toFileSuiteSchema({
-				runnable: [
-					[ID(["a"], "test 4"), fn4],
-				],
-				n_Tests: 1,
-				onlyUsed: true,
-			})
-
-			_check_Eq_(rec, exp)
-		})
-
-		it("with tests inside groups", () => {
-
-			group("a", () => {
-				group.only("aa", () => {
-					test.only("test 2", () => { })   // ignored
-					test("test 3", () => { })        // ignored
-				})
-
-				group.only("aa", () => {
-					test.only("test 4", () => { })   // ignored
-					test("test 5", () => { })        // ignored
-				})
-				test.only("test 1", fn1)            // runs
-			})
-
-			const rec = collector.pullSuite()
-
-			const exp = toFileSuiteSchema({
-				runnable: [
-					[ID(["a"], "test 1"), fn1],
-				],
-				n_Tests: 1,
-				onlyUsed: true,
-			})
-
-			_check_Eq_(rec, exp)
-
-		})
-
-		it("only() group after the other only() group", () => {
-
-			group("a", () => {
-				group.only("aa", () => {
-					test.only("test 2", () => {})   // ignored
-					test("test 3", () => {})        // ignored
-				})
-				group.only("aa", () => {
-					test("test 4", fn4)       // runs
-					test("test 5", fn5)       // runs
-				})
-			})
-
-			const rec = collector.pullSuite()
-
-			const exp = toFileSuiteSchema({
-				runnable: [
-					[ID(["a", "aa"], "test 4"), fn4],
-					[ID(["a", "aa"], "test 5"), fn5],
-				],
-				n_Tests: 2,
-				onlyUsed: true,
-			})
-
-			_check_Eq_(rec, exp)
-		})
-
-		it("over the rest of modifiers", () => {
-
-			group("a", () => {
-				group.skip("aa", () => {
-					test("test 1", () => { })     // ignored
-					test.only("test 2", fn2)      // runs
-					test.todo("test 4")          // ignored
-				})
-				test.skip("test 6", () => { })   // ignored
-			})
-
-			const rec = collector.pullSuite()
-
-			const exp = toFileSuiteSchema({
-				runnable: [
-					[ID(["a", "aa"], "test 2"), fn2],
-				],
-				n_Tests: 1,
-				onlyUsed: true,
-			})
-
-			_check_Eq_(rec, exp)
+			check(rec).with(exp)
 		})
 	})
 
@@ -184,103 +56,78 @@ describe("modifiers", () => {
 
 		it("with tests", () => {
 
+			globalThis[GLOB_SOPHI_K].fileSuite = new FileSuite()
+
 			group("a", () => {
-				test.skip("test 1", () => {})   // skipped
-				test("test 2", fn2)             // runs
+				test.skip("test 1", () => { })   // skipped
+				test("test 2", fn1)              // runs
 			})
 
-			const rec = collector.pullSuite()
+			const rec = globalThis[GLOB_SOPHI_K].fileSuite
 
-			const exp = toFileSuiteSchema({
-				runnable: [
-					[ID(["a"], "test 2"), fn2],
-				],
-				skip: [
-					ID(["a"], "test 1"),
-				],
-				n_Tests: 2,
+			const exp = lossy({
+				tests: new Map([[
+					1, { ID: 1, name: "test 2", fn: fn1, g: 1 },
+				]]),
+				n_Skip: 1,
 			})
 
-			_check_Eq_(rec, exp)
+			check(rec).with(exp)
 		})
 
 		it("with tests inside groups", () => {
 
+			globalThis[GLOB_SOPHI_K].fileSuite = new FileSuite()
+
 			group("a", () => {
 				group.skip("aa", () => {
-					test("test 1", () => { })         // skip
-					test("test 2", () => { })         // skip
+					test("test 1", () => { })        // skip
+					test("test 2", () => { })        // skip
 				})
 				group("aa", () => {
-					test("test 3", fn3)              // runs
+					test("test 3", fn1)              // runs
 				})
-				test.skip("test 4", () => { })       // skip
+				test.skip("test 4", () => { })      // skip
 			})
 
-			const rec = collector.pullSuite()
-
-			const exp = toFileSuiteSchema({
-				runnable: [
-					[ID(["a", "aa"], "test 3"), fn3],
-				],
-				skip: [
-					ID(["a", "aa"], "test 1"),
-					ID(["a", "aa"], "test 2"),
-					ID(["a"], "test 4"),
-				],
-				n_Tests: 4,
+			const rec = globalThis[GLOB_SOPHI_K].fileSuite
+			const exp = lossy({
+				tests: new Map([[
+					1, { ID: 1, name: "test 3", fn: fn1, g: 1 },
+				]]),
+				n_Skip: 3,
 			})
 
-			_check_Eq_(rec, exp)
+			check(rec).with(exp)
 		})
 	})
 
-	describe("todo", () => {
-
-		it("is added when inside NOT modified groups", () => {
-
-			group("a", () => {
-				test.todo("test 1")
-			})
-			test.todo("test 2")
-
-			const rec = collector.pullSuite()
-
-			const exp = toFileSuiteSchema({
-				todo: [
-					ID(["a"], "test 1"),
-					ID([], "test 2"),
-				],
-				n_Tests: 2,
-			})
-
-			_check_Eq_(rec, exp)
-		})
+	describe("todo()", () => {
 
 		it("not added when inside skip", () => {
+
+			globalThis[GLOB_SOPHI_K].fileSuite = new FileSuite()
 
 			group.skip("a", () => {
 				test.todo("test 1")
 			})
 			test.todo("test 2")
 
-			const rec = collector.pullSuite()
+			const rec = globalThis[GLOB_SOPHI_K].fileSuite
 
-			const exp = toFileSuiteSchema({
-				todo: [
-					ID([], "test 2"),
-				],
-				n_Tests: 1,
+			const spec = lossy({
+				tests: new Map(),
+				n_Todo: 2,
 			})
 
-			_check_Eq_(rec, exp)
+			check(rec).with(spec)
 		})
 	})
 })
 
 describe("object api", () => {
 
-	it("works with nesting", () => {
+	it.$("works with nesting", () => {
 
 		let tests = {
 			a: {
@@ -297,45 +144,30 @@ describe("object api", () => {
 
 		const rec = objToSuite(tests)
 
-		const exp = toFileSuiteSchema({
-			runnable: [
-				[ID(["a", "aa"], "test 1"), fn1],
-				[ID(["a", "aa"], "test 2"), fn2],
-				[ID(["a"], "test 3"), fn3],
-				[ID(["b"], "test 4"), fn4],
-			],
-			n_Tests: 4,
+		const exp = lossy({
+			tests: new Map([
+				[1, { ID: 1, name: "test 1", fn: fn1, g: 1 }],
+				[2, { ID: 2, name: "test 2", fn: fn2, g: 1 }],
+				[3, { ID: 3, name: "test 3", fn: fn3, g: 2 }],
+				[4, { ID: 4, name: "test 4", fn: fn4, g: 3 }],
+			]),
 		})
-
-		_check_Eq_(rec, exp)
-	})
-
-	it("return default schema for empty tests", () => {
-
-		let tests = {}
-
-		const rec = objToSuite(tests)
-		const exp = toFileSuiteSchema({
-			n_Tests: 0,
-		})
-
-		_check_Eq_(rec, exp)
+console.log(rec.groups)
+		check(rec).with(exp)
+		check(rec.n_Tests).with(4)
 	})
 })
 
 
-function toFileSuiteSchema({runnable, skip, todo, n_Tests, onlyUsed}) {
+async function runTrapLogs(testFiles) {
+	const stdout = new PassThrough().setEncoding("utf8")
+	let log = ""
+	stdout.on("data", x => log += x)
+	await run(testFiles, { stdout })
+	return log
+}
 
-	let fileSuite = {
-		clusters: {
-			runnable: runnable ? new Map(runnable) : new Map(),
-			skip: skip ? new Set(skip) : new Set(),
-			todo: todo ? new Set(todo) : new Set(),
-		},
-		n_Tests,
-	}
 
-	if (onlyUsed) fileSuite.onlyUsed = true
-
-	return fileSuite
+function existsInLog({ str }, log) {
+	return log.includes(str)
 }

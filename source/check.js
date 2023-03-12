@@ -309,6 +309,7 @@ export function getIssues(rec, exp, {isLossy = false} = {}) {
 		function fillDiffs(a, b, iterating_rec) {
 
 			const Ks = sortKs(a)
+			// console.log(Ks)
 			for (const k of Ks) {
 
 				const aVal = a[k]
