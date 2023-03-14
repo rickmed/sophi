@@ -12,9 +12,10 @@ const TABLE_OPTS = {
 	style: {},
 }
 
-const { print, indent, outdent } = printHelpers()
 
-export function report(suite) {
+export function report(suite, {stdout = false} = {}) {
+
+	const { print, print_nl, indent, outdent } = printHelpers(stdout)
 
 	const startTime = Date.now()
 
@@ -24,61 +25,15 @@ export function report(suite) {
 	print_Summary(suite)
 
 	function print_SummaryPerFile(fileSuites) {
-
-		let tableOpts = copy(TABLE_OPTS)
-		tableOpts.style["padding-right"] = 0
-		tableOpts.style["padding-left"] = 0
-		let table = new Table(tableOpts)
-
-		for (const [filePath, {n_Tests, n_FailT, n_PassT, n_SkipT, n_TodoT}] of fileSuites) {
-
-			let tableRow = []
-
-			let fileMark = "✔ ".green
-
-			if (n_FailT > 0) {
-				fileMark = "✘ ".red
-			}
-			if (n_SkipT === n_Tests) {
-				fileMark = "❯❯ ".yellow
-			}
-			if (n_TodoT === n_Tests) {
-				fileMark = "[] ".blue
-			}
-
-			tableRow.push({ content: fileMark + filePath, style: { ["padding-right"]: 2 } })
-			tableRow.push(toCell(n_FailT ? `${n_FailT} ✘`.red : ""))
-			tableRow.push(toCell(n_PassT ? `${n_PassT} ✔`.green : ""))
-			tableRow.push(toCell(n_SkipT ? `${n_SkipT} ${"❯".thick}`.yellow : ""))
-			tableRow.push(toCell(n_TodoT ? `${n_TodoT} []`.blue : ""))
-
-			table.push(tableRow)
-
-
-			function toCell(str) {
-				return {
-					content: str,
-					hAlign: "right",
-					style: {
-						["padding-right"]: str === "" ? 0 : 2,
-						["padding-left"]: 0,
-					},
-				}
-			}
-		}
-
-		print(table.toString())
+		const tableStr = fileSummaryTable(fileSuites)
+		print(tableStr)
 		print_nl(2)
 	}
 
 	function print_FailedTests(fileSuites) {
-		for (const [filePath, fileSuite] of fileSuites) {
-			for (const {failLoc: {line, col}, failMsg} of fileSuite.failedTests) {
-				print(`${" Fail ".red.inverse} ${`${filePath}:${line}:${col}`.red.thick} ${"─".repeat(50).red}`)
-				print_nl()
-				indent()
+		for (const [, fileSuite] of fileSuites) {
+			for (const {failMsg} of fileSuite.failedTests) {
 				print(failMsg)
-				outdent()
 				print_nl(2)
 			}
 		}
@@ -258,31 +213,78 @@ export function report(suite) {
 			print(table.toString())
 		}
 	}
+
+	function printHelpers(stdout) {
+
+		const _console = new Console({
+			stdout: stdout || process.stdout,
+			groupIndentation: 2,
+		})
+
+		const print = _console.log
+		const indent = _console.group
+		const outdent = _console.groupEnd
+
+		function print_nl(i = 1) {
+			while (i) {
+				print("")
+				i--
+			}
+		}
+
+		return { print, indent, outdent, print_nl }
+	}
+}
+
+export function fileSummaryTable(fileSuites) {
+
+	let tableOpts = copy(TABLE_OPTS)
+	tableOpts.style["padding-right"] = 0
+	tableOpts.style["padding-left"] = 0
+	let table = new Table(tableOpts)
+
+	for (const [filePath, {n_Tests, n_FailT, n_PassT, n_SkipT, n_TodoT}] of fileSuites) {
+
+		let tableRow = []
+
+		let fileMark = "✔ ".green
+
+		if (n_FailT > 0) {
+			fileMark = "✘ ".red
+		}
+		if (n_SkipT === n_Tests) {
+			fileMark = "❯❯ ".yellow
+		}
+		if (n_TodoT === n_Tests) {
+			fileMark = "[] ".blue
+		}
+
+		tableRow.push({ content: fileMark + filePath, style: { ["padding-right"]: 2 } })
+		tableRow.push(toCell(n_FailT ? `${n_FailT} ✘`.red : ""))
+		tableRow.push(toCell(n_PassT ? `${n_PassT} ✔`.green : ""))
+		tableRow.push(toCell(n_SkipT ? `${n_SkipT} ${"❯".thick}`.yellow : ""))
+		tableRow.push(toCell(n_TodoT ? `${n_TodoT} []`.blue : ""))
+
+		table.push(tableRow)
+
+
+		function toCell(str) {
+			return {
+				content: str,
+				hAlign: "right",
+				style: {
+					["padding-right"]: str === "" ? 0 : 2,
+					["padding-left"]: 0,
+				},
+			}
+		}
+	}
+
+	return table.toString()
 }
 
 function copy(obj) {
 	return JSON.parse(JSON.stringify(obj))
-}
-
-function printHelpers() {
-
-	const _console = new Console({
-		stdout: process.stdout,
-		groupIndentation: 2,
-	})
-
-	const print = _console.log
-	const indent = _console.group
-	const outdent = _console.groupEnd
-
-	return { print, indent, outdent }
-}
-
-function print_nl(i = 1) {
-	while (i) {
-		print("")
-		i--
-	}
 }
 
 

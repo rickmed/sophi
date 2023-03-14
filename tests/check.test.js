@@ -347,7 +347,7 @@ describe("getIssues()", () => {
 							["k2", { type: "Leaf", rec: EMPTY, exp: "e" }],
 						]),
 					}],
-					[objAsK, {type: "Leaf", rec: EMPTY, exp: fn2}],
+					[objAsK, { type: "Leaf", rec: EMPTY, exp: fn2 }],
 				]),
 			}
 
@@ -430,7 +430,7 @@ describe("getIssues()", () => {
 			]),
 		}
 
-		_check_Eq_(rec, exp)
+		check(rec).with(exp)
 	})
 })
 
@@ -438,7 +438,7 @@ describe("check().satisfies()", () => {
 
 	describe("throws correctly if expected does not passes validator", () => {
 
-		it("basic usage", () => {
+		it("common usage", () => {
 
 			function inRange({ floor, ceiling }, rec) {
 				return rec >= floor && rec <= ceiling

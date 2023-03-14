@@ -1,15 +1,22 @@
 import { GLOB_SOPHI_K } from "./utils.js"
+import { fullNameToStr } from "./stringifyFailedTests.js"
 
-const MOD = {
-	ONLY: 1,
-	SKIP: 2,
+const M = {
+	SKIP: 1,
 }
+
+const SEP = " $0ph! "
+export const DUPLICATE_GROUP_MSG = "Duplicate group names: "
 
 export class FileSuite {
 
 	#groupID
+	#tests
 	#testID
-	#groupStack
+	#groupNameStack
+	#groupMods
+	#groupNamesCache
+	#onlyTest
 
 	constructor() {
 		/*
@@ -33,33 +40,39 @@ export class FileSuite {
 		}
 		*/
 
-		this.#resetSuite()
-		this.#groupStack = [{top: true}]    // top-level group (no group)
-		this.failedTests = new Set()
-	}
-
-	#resetSuite() {
 		this.groups = new Map()
 		this.#groupID = 1
-		this.tests = new Map()
+		this.#tests = new Map()
 		this.#testID = 1
+		this.#groupNameStack = []
+		this.failedTests = new Set()  // test objs
+		this.#groupMods = new Set()    // M.SKIP | ...
+		this.#groupNamesCache = new Map()  // fullGroupName -> groupID
 	}
 
 	openGroup(name, fn, mod) {
 
-		if (mod === MOD.ONLY) {
-			this.#resetSuite()
-		}
+		const gropNameStack = this.#groupNameStack
 
-		this.#groupStack.push({ name, mod })
+		gropNameStack.push(name)
+
+		checkDuplicateNestedGroupNames.call(this)
+
+		if (mod) {
+			this.#groupMods.add(mod)
+		}
 
 		fn()
 
-		if (mod === MOD.ONLY) {
-			this.onlyUsed = true
-		}
+		this.#groupMods.delete(mod)
+		gropNameStack.pop()
 
-		this.#groupStack.pop()
+
+		function checkDuplicateNestedGroupNames() {
+			if (this.#groupNamesCache.get(this.#fullGroupName(gropNameStack))) {
+				throw new Error(DUPLICATE_GROUP_MSG + fullNameToStr(gropNameStack))
+			}
+		}
 	}
 
 	addRegularTest(name, fn) {
@@ -68,17 +81,17 @@ export class FileSuite {
 			return
 		}
 
-		if (this.#isLowestAncestorMod(MOD.SKIP)) {
+		if (this.#groupMods.has(M.SKIP)) {
 			this.addSkipTest(name)
 			return
 		}
 
-		this.#addTest(name, fn)
+		this.addTest(name, fn)
 	}
 
 	addOnlyTest(name, fn) {
 		this.onlyUsed = true
-		this.#addTest(name, fn)
+		this.#onlyTest = this.addTest(name, fn)
 	}
 
 	addSkipTest() {
@@ -91,37 +104,52 @@ export class FileSuite {
 		this.n_Todo++
 	}
 
-	addObjAPITest({ name, fn, groupStack }) {
-		this.#addTest(name, fn, groupStack)
+	addTest(name, fn, groupNameStack = this.#groupNameStack) {
+		const groupID = this.#group(groupNameStack)
+		return this.#addNewTest(name, fn, groupID)
 	}
 
-	#addTest(name, fn, groupStack) {
+	#addNewTest(name, fn, groupID) {
+		const ID = this.#testID++
+		let newTest = {ID, name, fn, g: groupID}
+		this.#tests.set(ID, newTest)
+		return newTest
+	}
 
-		groupStack = groupStack || this.#groupStack
-
-		let currGroup = groupStack.at(-1)
-
-		if (!currGroup.group) { 
+	#group(groupNameStack) {
+		const groupCacheName = this.#fullGroupName(groupNameStack)
+		let groupID = this.#groupNamesCache.get(groupCacheName)
+		if (!groupID) {
 			const ID = this.#groupID++
-			const namePath = currGroup.top ? [] : groupStack.map(g => g.name)
-			const newGroup = {ID, namePath, tests: new Set()}
+			const newGroup = {ID, tests: new Set(), namePath: groupNameStack.slice()}
 			this.groups.set(ID, newGroup)
-			currGroup.group = newGroup
+			this.#groupNamesCache.set(groupCacheName, ID)
+			groupID = ID
 		}
-
-		const {group} = currGroup
-
-		const testID = this.#testID++
-		group.tests.add(testID)
-		this.tests.set(testID, { ID: testID, name, fn, g: group.ID })
+		return groupID
 	}
 
-	#isLowestAncestorMod(mod) {
-		const groupStack = this.#groupStack
-		for (let i = groupStack.length - 1; i >= 0; i--) {
-			if (groupStack[i].mod === mod) return true
+	#fullGroupName(groupNameStack) {
+		return groupNameStack.join(SEP)
+	}
+
+	get tests() {
+
+		const onlyTest = this.#onlyTest
+
+		if (onlyTest) {
+
+			this.#tests = new Map([
+				[onlyTest.ID, onlyTest],
+			])
+
+			const testGroup = this.groups.get(onlyTest.g)
+			this.groups = new Map([
+				[testGroup.ID, testGroup],
+			])
 		}
-		return false
+
+		return this.#tests
 	}
 
 	testFailed(test, err) {
@@ -130,7 +158,7 @@ export class FileSuite {
 	}
 
 	get n_Tests() {
-		return this.tests.size
+		return this.#tests.size
 	}
 
 	get n_PassT() {
@@ -155,16 +183,10 @@ export function group(groupName, fn) {
 	globalThis[GLOB_SOPHI_K].fileSuite.openGroup(groupName, fn)
 }
 
-function groupOnly(groupName, fn) {
-	globalThis[GLOB_SOPHI_K].fileSuite.openGroup(groupName, fn, MOD.ONLY)
-}
-
 function groupSkip(groupName, fn) {
-	globalThis[GLOB_SOPHI_K].fileSuite.openGroup(groupName, fn, MOD.SKIP)
+	globalThis[GLOB_SOPHI_K].fileSuite.openGroup(groupName, fn, M.SKIP)
 }
 
-group.only = groupOnly
-group.$ = groupOnly
 group.skip = groupSkip
 
 
@@ -199,27 +221,30 @@ export {
 
 export function objToSuite(objSuite) {
 
-	const suite = new FileSuite()
+	const fileSuite = new FileSuite()
 
 	_objToSuite(objSuite, [])
 
-	return suite.pullSuite()
+	return fileSuite
 
 
-	function _objToSuite(obj, path) {
+	function _objToSuite(obj, gropNameStack) {
 
 		for (const k in obj) {
 
 			const v = obj[k]
 
 			if (typeof v === "function") {
-				suite.addObjAPITest({ name: k, fn: v, groupStack: path })
+				const testFn = v
+				const testName = k
+				fileSuite.addTest(testName, testFn, gropNameStack)
 				continue
 			}
 			else {
-				path.push({ groupName: k, mod: null })
-				_objToSuite(v, path)
-				path.pop()
+				const groupName = k
+				gropNameStack.push(groupName)
+				_objToSuite(v, gropNameStack)
+				gropNameStack.pop()
 			}
 		}
 	}

@@ -2,20 +2,20 @@ import path from "node:path"
 import { collectSuites } from "./collectSuites.js"
 import { execTests } from "./execTests.js"
 import { report } from "./report.js"
-import { stringifyFailsData } from "./stringifyFailsData.js"
+import { stringifyFailedTests } from "./stringifyFailedTests.js"
 
 
 export async function run(filePath_s, opts) {
 
-	let suite = Suite(opts)
+	let suite = newSuite(opts)
 
 	await collectSuites(suite, filePath_s)
 	await execTests(suite, opts)
-	await stringifyFailsData(suite)
-	report(suite)
+	await stringifyFailedTests(suite)
+	report(suite, opts)
 }
 
-export function Suite({projectRoot = process.cwd()} = {}) {
+export function newSuite({projectRoot = process.cwd()} = {}) {
 	return {
 		durations: {},
 		absPathFromProjRootDir(filePath) {

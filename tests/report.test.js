@@ -1,5 +1,5 @@
-import { describe, test, check_is, check_Eq, fail, run } from "../source/index.js"
-import { toRelPathFromProjRoot } from "./utils.js"
+import { describe, test, check_is, check_Eq, run } from "../source/index.js"
+import { toRelPathFromProjRoot, findSectionInLog } from "./utils.js"
 import { toHuman } from "../source/report.js"
 import "../source/colors/colors.js"
 
@@ -141,7 +141,7 @@ describe("report()", () => {
 
 				const pathAndLocMsg = `${" Fail ".red.inverse} ${FailPathLoc.red.thick} ${"─".repeat(20).red}` + NL
 
-				const logsIdx = findSection(pathAndLocMsg)
+				const logsIdx = findSectionInLog(pathAndLocMsg, logs)
 				let i = logsIdx
 
 				check_2NL_above()
@@ -195,7 +195,7 @@ describe("report()", () => {
 
 		function check_Summary(logs) {
 
-			const logsIdx = findSection(" Summary ".inverse, true)
+			const logsIdx = findSectionInLog(" Summary ".inverse, logs, {startsWith: true})
 			let i = logsIdx
 
 			check_3NL_above()
@@ -230,32 +230,6 @@ describe("report()", () => {
 				check_is(logs[i - 2].includes(NL), true)
 				check_is(logs[i - 1].includes(NL), true)
 			}
-		}
-
-
-		function findSection(str, startsWith) {
-
-			let found = []
-
-			const logsL = logs.length
-			for (let i = 0; i < logsL; i++) {
-				const val = logs[i]
-				if (startsWith && val.startsWith(str)) {
-					found.push({ i, val })
-				}
-				if (val === str) {
-					found.push({ i, val })
-				}
-			}
-
-			if (found.length === 0) {
-				fail(`section not found in report logs \n ${str}`)
-			}
-			if (found.length > 1) {
-				fail(`two identical messages printed in report logs \n ${str}`)
-			}
-
-			return found[0].i
 		}
 	})
 

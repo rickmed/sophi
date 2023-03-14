@@ -1,5 +1,3 @@
-import { GLOB_SOPHI_K } from "./utils.js"
-
 export const OP = {
 	CHECK: "check",
 	EQ: "check_Eq",
@@ -309,6 +307,7 @@ export function getIssues(rec, exp, {isLossy = false} = {}) {
 		function fillDiffs(a, b, iterating_rec) {
 
 			const Ks = sortKs(a)
+			// console.log(Ks)
 			for (const k of Ks) {
 
 				const aVal = a[k]
