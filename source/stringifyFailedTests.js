@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises"
 import { EOL } from "node:os"
 import { inspect } from "node:util"
 import { ERR_ASSERTION_SOPHI, OP, EMPTY } from "./check.js"
-import "./colors/colors.js"
+import { ink } from "./ink.js"
 
 const NL = "\n"
 const NLx2 = NL + NL
@@ -52,7 +52,7 @@ function _stringifyFailedTests(fileSuites) {
 
 			const [line, col] = getFailLocation(err, filePath)
 
-			const errStrTitle = `${" Fail ".red.inverse} ${`${filePath}:${line}:${col}`.red.thick} ${"─".repeat(50).red}` + NLx2
+			const errStrTitle = `${ink(" Fail ").red.inverse_} ${ink(`${filePath}:${line}:${col}`).red.bold_} ${ink("─".repeat(50)).red_}` + NLx2
 
 			let errStrBody = ""
 			const groupNamePath = groups.get(test.g).namePath
@@ -104,11 +104,11 @@ function _stringifyFailedTests(fileSuites) {
 			const codeLine = fileLines[i - 1]
 
 			if (i === failLine) {
-				lines.push((arrowMark.red + i + ": " + codeLine).thick)
+				lines.push(ink(ink(arrowMark).red_ + i + ": " + codeLine).bold_)
 				continue
 			}
 
-			lines.push((leftSpace + i + ": " + codeLine).dim)
+			lines.push(ink(leftSpace + i + ": " + codeLine).dim_)
 		}
 
 		return lines.join(NL)
@@ -116,12 +116,13 @@ function _stringifyFailedTests(fileSuites) {
 
 	function stack_Str(testErr) {
 
-		const stackStr = testErr.stack.split(NL)
+		let stackStr = testErr.stack.split(NL)
 			.map(l => l.trim())
 			.filter(l => l.startsWith("at"))
 			.map(l => l.trim())
 			.join(NL)
-			.dim
+
+		stackStr = ink(stackStr).dim_
 
 		return stackStr
 	}
@@ -137,8 +138,8 @@ function ErrorDiagnostics_Str(testErr) {
 		str +=
 			operator === OP.SATISFIES ? Satisfies_Str(testErr) :
 				operator === OP.CHECK ? Check_Str(testErr) :
-					message.yellow.thick
-		str += NL
+					ink(message).yellow.bold_
+		str += NLx2
 		str += Comparates_Str(expected, received)
 	}
 	else {
@@ -154,11 +155,11 @@ function ErrorDiagnostics_Str(testErr) {
 
 		const opts = { depth: 50, compact: false, colors: true, sorted: true }
 
-		str += "Expected".green.thick
+		str += ink("Expected").green.bold_
 		str += NLx2
 		str += indentStr(typeof exp === "string" ? exp : inspect(exp, opts))
 		str += NLx2
-		str += "Received".red.thick
+		str += ink("Received").red.bold_
 		str += NLx2
 		str += indentStr(typeof rec === "string" ? rec : inspect(rec, opts))
 
@@ -167,7 +168,7 @@ function ErrorDiagnostics_Str(testErr) {
 }
 
 export function fullNameToStr(fullNameArr) {
-	return fullNameArr.map(n => n.yellow).join(" ▶ ".red.dim)
+	return fullNameArr.map(n => ink(n).yellow_).join(ink(" ▶ ").red.dim_)
 }
 
 export function Satisfies_Str(testErr) {
@@ -180,7 +181,7 @@ export function Satisfies_Str(testErr) {
 		sorted: true,
 	}
 
-	let titleStr = userMsg ? `${userMsg}` : `Expected to pass ${validatorName.thick}`
+	let titleStr = userMsg ? `${userMsg}` : `Expected to pass ${ink(validatorName).bold_}`
 	if (args) titleStr += " with arguments"
 	titleStr += ":"
 
@@ -206,7 +207,7 @@ export function Satisfies_Str(testErr) {
 
 	const bodyStr = expectedStr === "" ? receivedStr : expectedStr + NL + receivedStr
 
-	return titleStr.yellow + NLx2 + indentStr(bodyStr)
+	return ink(titleStr).yellow_ + NLx2 + indentStr(bodyStr)
 }
 
 export function Check_Str(testErr) {
@@ -215,10 +216,10 @@ export function Check_Str(testErr) {
 	let str = ""
 
 	if (expFn) {
-		str += `Expected to pass ${expFn.name.thick}`.yellow
+		str += ink(`Expected to pass ${ink(expFn.name).bold_}`).yellow_
 	}
 	else {
-		str += message.yellow.thick
+		str += ink(message).yellow.bold_
 	}
 
 	str += NLx2 + indentStr(buildIssuesMsg(issues))
@@ -228,10 +229,8 @@ export function Check_Str(testErr) {
 
 function buildIssuesMsg(issues) {
 
-	const pathsColor = "red"
-
 	let str = ""
-	if (issues.type !== "Leaf") str += topBrace(issues.type)[pathsColor]
+	if (issues.type !== "Leaf") str += ink(topBrace(issues.type)).red_
 	str += NL
 	buildMsg(issues)
 	return str
@@ -275,12 +274,15 @@ function buildIssuesMsg(issues) {
 				recStr = rec === EMPTY ? "" : inspect(rec, opts)
 			}
 
-			expStr = expStr.split(NL).map(l => ind + " ".inverse.green + INDENT + l).join(NL)
-			recStr = recStr.split(NL).map(l => ind + "▓".inverse.red + INDENT + l).join(NL)
+			expStr = markWithColor("green", expStr)
+			expStr = indentStr(expStr, ind)
+			recStr = markWithColor("red", recStr)
+			recStr = indentStr(recStr, ind)
 
 			// this line prints the if rec above or viceversa
 			str += expStr + NL + recStr + NL
 		}
+
 		function buildkStr(k, diffType, parentType) {
 
 			let kStr = ""
@@ -297,11 +299,12 @@ function buildIssuesMsg(issues) {
 			if (diffType === "Array") kStr += "["
 			if (diffType === "Map") kStr += "Map {"
 
-			str += (ind + kStr + NL)[pathsColor]
+			str += ink(ind + kStr + NL).red_
 		}
+
 		function addCloseBracket(type) {
 			let _str = type === "Array" ? "]" : "}"
-			str += ("  ".repeat(level - 1) + _str + NL)[pathsColor]
+			str += ink("  ".repeat(level - 1) + _str + NL).red_
 		}
 	}
 }
@@ -324,8 +327,6 @@ function bothCanStringDiff(exp, rec) {
 }
 
 function markStrsDiffs(exp, rec) {
-
-	const style = "underline"
 
 	rec = rec.toString()
 	exp = exp.toString()
@@ -356,8 +357,8 @@ function markStrsDiffs(exp, rec) {
 				expMarked += exp[i]
 				i++
 			}
-			recNew += (recMarked[style])
-			expNew += (expMarked[style])
+			recNew += ink(recMarked).underline_
+			expNew += ink(expMarked).underline_
 			continue
 		}
 
@@ -373,7 +374,7 @@ function markStrsDiffs(exp, rec) {
 		i++
 	}
 
-	markedRestOfLongStr = markedRestOfLongStr[style]
+	markedRestOfLongStr = ink(markedRestOfLongStr).underline_
 
 	if (longStr === rec) {
 		recNew += markedRestOfLongStr
@@ -386,10 +387,11 @@ function markStrsDiffs(exp, rec) {
 }
 
 function markWithColor(color, str) {
-	const colorMark = color === "red" ? "▓".inverse.red : " ".inverse.green
+	const colorMark = color === "red" ? ink("▓").inverse.red_ : ink(" ").inverse.green_
 	return str.split(NL).map(l => colorMark + INDENT + l).join(NL)
 }
 
-function indentStr(str) {
-	return str.split(NL).map(l => INDENT + l).join(NL)
+function indentStr(str, _indent) {
+	_indent = _indent || INDENT
+	return str.split(NL).map(l => _indent + l).join(NL)
 }

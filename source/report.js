@@ -1,6 +1,7 @@
 import { Console } from "node:console"
 import Table from "cli-table3"
-import "./colors/colors.js"
+import { ink } from "./ink.js"
+
 
 const TABLE_OPTS = {
 	chars: {
@@ -51,7 +52,7 @@ export function report(suite, {stdout = false} = {}) {
 		}
 
 		const line = " " + "─".repeat(Math.floor(process.stdout.columns * 0.75))
-		print(" Summary ".inverse + line)
+		print(ink(" Summary ").inverse_ + line)
 		print_nl()
 		print_onlyUsed()
 		print_FilesWithNoTests()
@@ -120,7 +121,7 @@ export function report(suite, {stdout = false} = {}) {
 					filePath = entry[0]
 				}
 				indent()
-				print(`⚠️ ${"only".italic.thick} modifier used in ${filePath.thick}`.yellow)
+				print(ink(`⚠️ ${ink("only").italic.bold_} modifier used in ${ink(filePath).bold_}`).yellow_)
 				outdent()
 				print_nl()
 			}
@@ -131,10 +132,10 @@ export function report(suite, {stdout = false} = {}) {
 
 			if (filesWithNoTests.size > 0) {
 				indent()
-				print("🧟‍♀️Files with no tests: ".blue)
+				print(ink("🧟‍♀️Files with no tests: ").blue_)
 				indent()
 				for (const filePath of filesWithNoTests) {
-					print("🧟‍♂️" + filePath.blue)
+					print("🧟‍♂️" + ink(filePath).blue_)
 				}
 				outdent()
 				outdent()
@@ -155,8 +156,8 @@ export function report(suite, {stdout = false} = {}) {
 			let table = new Table(_TABLE_OPTS)
 
 			let headers = [""]
-			let filesRow = ["Files ".dim]
-			let testsRow = ["Tests ".dim]
+			let filesRow = [ink("Files ").dim_]
+			let testsRow = [ink("Tests ").dim_]
 
 			const total_F = pass_F + fail_F + skip_F + todo_F
 			const total_T = pass_T + fail_T + skip_T + todo_T
@@ -165,24 +166,24 @@ export function report(suite, {stdout = false} = {}) {
 			filesRow.push(total_F)
 			testsRow.push(total_T)
 			if (fail_T) {
-				headers.push("Failed".red)
-				filesRow.push(`${fail_F}`.red)
-				testsRow.push(`${fail_T}`.red)
+				headers.push(ink("Failed").red_)
+				filesRow.push(ink(`${fail_F}`).red_)
+				testsRow.push(ink(`${fail_T}`).red_)
 			}
 			if (pass_T) {
-				headers.push("Passed".green)
-				filesRow.push(`${pass_F}`.green)
-				testsRow.push(`${pass_T}`.green)
+				headers.push(ink("Passed").green_)
+				filesRow.push(ink(`${pass_F}`).green_)
+				testsRow.push(ink(`${pass_T}`).green_)
 			}
 			if (skip_T) {
-				headers.push("Skipped".yellow)
-				filesRow.push(`${skip_F}`.yellow)
-				testsRow.push(`${skip_T}`.yellow)
+				headers.push(ink("Skipped").yellow_)
+				filesRow.push(ink(`${skip_F}`).yellow_)
+				testsRow.push(ink(`${skip_T}`).yellow_)
 			}
 			if (todo_T) {
-				headers.push("Todo".blue)
-				filesRow.push(`${todo_F}`.blue)
-				testsRow.push(`${todo_T}`.blue)
+				headers.push(ink("Todo").blue_)
+				filesRow.push(ink(`${todo_F}`).blue_)
+				testsRow.push(ink(`${todo_T}`).blue_)
 			}
 
 			table.push(headers, filesRow, testsRow)
@@ -206,8 +207,8 @@ export function report(suite, {stdout = false} = {}) {
 
 			let table = new Table(_TABLE_OPTS)
 
-			let headers = ["", "Total", "Collect".dim, "Test".dim, "Report".dim]
-			let times = [{ content: "Duration ".dim, hAlign: "right" }, totalDuration, collectDuration.dim, testsDuration.dim, reportDuration.dim]
+			let headers = ["", "Total", ink("Collect").dim_, ink("Test").dim_, ink("Report").dim_]
+			let times = [{ content: ink("Duration ").dim_, hAlign: "right" }, totalDuration, ink(collectDuration).dim_, ink(testsDuration).dim_, ink(reportDuration).dim_]
 
 			table.push(headers, times)
 			print(table.toString())
@@ -247,23 +248,23 @@ export function fileSummaryTable(fileSuites) {
 
 		let tableRow = []
 
-		let fileMark = "✔ ".green
+		let fileMark = ink("✔ ").green_
 
 		if (n_FailT > 0) {
-			fileMark = "✘ ".red
+			fileMark = ink("✘ ").red_
 		}
 		if (n_SkipT === n_Tests) {
-			fileMark = "❯❯ ".yellow
+			fileMark = ink("❯❯ ").yellow_
 		}
 		if (n_TodoT === n_Tests) {
-			fileMark = "[] ".blue
+			fileMark = ink("[] ").blue_
 		}
 
 		tableRow.push({ content: fileMark + filePath, style: { ["padding-right"]: 2 } })
-		tableRow.push(toCell(n_FailT ? `${n_FailT} ✘`.red : ""))
-		tableRow.push(toCell(n_PassT ? `${n_PassT} ✔`.green : ""))
-		tableRow.push(toCell(n_SkipT ? `${n_SkipT} ${"❯".thick}`.yellow : ""))
-		tableRow.push(toCell(n_TodoT ? `${n_TodoT} []`.blue : ""))
+		tableRow.push(toCell(n_FailT ? ink(`${n_FailT} ✘`).red_ : ""))
+		tableRow.push(toCell(n_PassT ? ink(`${n_PassT} ✔`).green_ : ""))
+		tableRow.push(toCell(n_SkipT ? ink(`${n_SkipT} ${"❯"}`).yellow_ : ""))
+		tableRow.push(toCell(n_TodoT ? ink(`${n_TodoT} []`).blue_ : ""))
 
 		table.push(tableRow)
 

@@ -1,10 +1,11 @@
 import { describe, test, check_is, check_Eq, run } from "../source/index.js"
 import { toRelPathFromProjRoot, findSectionInLog } from "./utils.js"
 import { toHuman } from "../source/report.js"
-import "../source/colors/colors.js"
+import { ink } from "../source/ink.js"
+
 
 const NL = "\n"
-const SEP = " | ".dim
+const SEP = " | ".dim_
 const INDENT = " ".repeat(3)
 
 const _toRelPathFromProjRoot = toRelPathFromProjRoot(import.meta.url)
@@ -35,12 +36,12 @@ describe("report()", () => {
 				FailPathLoc: "tests/integration/fixture.fail.js:6:3",
 				TestTitle: "group1 ▶ Test title",
 				AssertionZone: [
-					INDENT + `    5:    test("Test title", () => {`.dim + NL,
-					INDENT + ("  > ".red + "6:       check_is(23099, 131)").thick + NL,
-					INDENT + `    7:    })`.dim + NL,
+					INDENT + `    5:    test("Test title", () => {`.dim_ + NL,
+					INDENT + ("  > ".red + "6:       check_is(23099, 131)").bold + NL,
+					INDENT + `    7:    })`.dim_ + NL,
 				],
 				ErrorDiagnosticsSophi: [
-					INDENT + "Expected to be the same (Object.is)".yellow.thick + NL,
+					INDENT + "Expected to be the same (Object.is)".yellow.bold + NL,
 					INDENT + NL,
 					INDENT + INDENT + `${"2".underline}3${"0".underline}${"99".underline}`.red + `${"1".underline}3${"1".underline}`.green + NL,
 				],
@@ -49,9 +50,9 @@ describe("report()", () => {
 				FailPathLoc: "tests/integration/fixture.fail.js:24:2",
 				TestTitle: "Test title 2",
 				AssertionZone: [
-					INDENT + `    23: `.dim + NL,
-					INDENT + ("  > ".red + `24:    check_Eq(rec, exp, "user message")`).thick + NL,
-					INDENT + `    25: })`.dim + NL,
+					INDENT + `    23: `.dim_ + NL,
+					INDENT + ("  > ".red + `24:    check_Eq(rec, exp, "user message")`).bold + NL,
+					INDENT + `    25: })`.dim_ + NL,
 				],
 				ErrorDiagnosticsSophi: [
 					"   \x1B[33mat 'k1':\x1B[39m\n",
@@ -79,12 +80,12 @@ describe("report()", () => {
 				FailPathLoc: "tests/integration/fixture.fail.js:29:2",
 				TestTitle: "Test title 3",
 				AssertionZone: [
-					INDENT + `    28:    await Promise.resolve(1)`.dim + NL,
-					INDENT + ("  > ".red + "29:    check_is(230, 13199)").thick + NL,
-					INDENT + `    30: })`.dim + NL,
+					INDENT + `    28:    await Promise.resolve(1)`.dim_ + NL,
+					INDENT + ("  > ".red + "29:    check_is(230, 13199)").bold + NL,
+					INDENT + `    30: })`.dim_ + NL,
 				],
 				ErrorDiagnosticsSophi: [
-					INDENT + "Expected to be the same (Object.is)".yellow.thick + NL,
+					INDENT + "Expected to be the same (Object.is)".yellow.bold + NL,
 					INDENT + NL,
 					INDENT + INDENT + `${"2".underline}3${"0".underline}`.red + `${"1".underline}3${"1".underline}${"99".underline}`.green + NL,
 				],
@@ -93,9 +94,9 @@ describe("report()", () => {
 				FailPathLoc: "tests/integration/fixture.fail.nonSophiAssert.js:5:9",
 				TestTitle: "Example test title",
 				AssertionZone: [
-					INDENT + `    4: test("Example test title", () => {`.dim + NL,
-					INDENT + ("  > ".red + "5:    assert.equal(1, 2)").thick + NL,
-					INDENT + `    6: })`.dim + NL,
+					INDENT + `    4: test("Example test title", () => {`.dim_ + NL,
+					INDENT + ("  > ".red + "5:    assert.equal(1, 2)").bold + NL,
+					INDENT + `    6: })`.dim_ + NL,
 				],
 			},
 		]
@@ -127,7 +128,7 @@ describe("report()", () => {
 			check_is(logs[++i], NL)
 
 			function toPrint(path, txt) {
-				return "✓".green.thick + " " + path + SEP + txt.green + NL
+				return "✓".green.bold + " " + path + SEP + txt.green + NL
 			}
 		}
 
@@ -139,7 +140,7 @@ describe("report()", () => {
 
 				let { FailPathLoc, TestTitle, AssertionZone, ErrorDiagnosticsSophi } = spec
 
-				const pathAndLocMsg = `${" Fail ".red.inverse} ${FailPathLoc.red.thick} ${"─".repeat(20).red}` + NL
+				const pathAndLocMsg = `${ink(" Fail ").red.inverse_} ${FailPathLoc.red.bold} ${"─".repeat(20).red}` + NL
 
 				const logsIdx = findSectionInLog(pathAndLocMsg, logs)
 				let i = logsIdx
@@ -172,7 +173,7 @@ describe("report()", () => {
 				}
 				function check_testTitle() {
 					rec = logs[++i]
-					exp = INDENT + TestTitle.yellow.thick + NL
+					exp = INDENT + TestTitle.yellow.bold + NL
 					check_is(rec, exp)
 				}
 				function check_AssertionZone() {
@@ -195,7 +196,7 @@ describe("report()", () => {
 
 		function check_Summary(logs) {
 
-			const logsIdx = findSectionInLog(" Summary ".inverse, logs, {startsWith: true})
+			const logsIdx = findSectionInLog(ink(" Summary ").inverse_, logs, {startsWith: true})
 			let i = logsIdx
 
 			check_3NL_above()
@@ -213,14 +214,14 @@ describe("report()", () => {
 			i = checkMultLines(todoMsgs, logs, i)
 
 			rec = logs[++i]
-			exp = INDENT + "   Files  ".dim + `2 Failed`.red + SEP + `2 Passed`.green + SEP + `1 Todo`.blue + SEP + `5 Total` + NL
+			exp = INDENT + "   Files  ".dim_ + `2 Failed`.red + SEP + `2 Passed`.green + SEP + `1 Todo`.blue + SEP + `5 Total` + NL
 			check_is(rec, exp)
 
 			rec = logs[++i]
-			exp = INDENT + "   Tests  ".dim + `4 Failed`.red + SEP + `3 Passed`.green + SEP + `1 Todo`.blue + SEP + `8 Total` + NL
+			exp = INDENT + "   Tests  ".dim_ + `4 Failed`.red + SEP + `3 Passed`.green + SEP + `1 Todo`.blue + SEP + `8 Total` + NL
 			check_is(rec, exp)
 
-			rec = logs[++i].startsWith(INDENT + "Duration".dim + "  ")
+			rec = logs[++i].startsWith(INDENT + "Duration".dim_ + "  ")
 			exp = true
 			check_is(rec, exp)
 
