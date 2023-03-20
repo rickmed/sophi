@@ -1,6 +1,6 @@
 import { Console } from "node:console"
 import Table from "cli-table3"
-import { ink } from "./ink.js"
+import { ink } from "./ink.mjs"
 
 
 const TABLE_OPTS = {

@@ -1,4 +1,4 @@
-import { group, test, check } from "../source/index.js"
+import { group, test, check } from "../source/index.mjs"
 
 group("group1", () => {
 	test("Test title", () => {

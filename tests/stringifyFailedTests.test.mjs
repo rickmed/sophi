@@ -1,6 +1,6 @@
-import { topic, test, check } from "../source/index.js"
-import { Satisfies_Str } from "../source/stringifyFailedTests.js"
-import { exec_run_withLogTrap, existsInLog } from "./utils.js"
+import { topic, test, check } from "../source/index.mjs"
+import { Satisfies_Str } from "../source/stringifyFailedTests.mjs"
+import { exec_run_withLogTrap, existsInLog } from "./utils.mjs"
 
 
 topic("buildSatisfiesMsg()", () => {
@@ -82,7 +82,7 @@ topic("stringifyFailedTests()", () => {
 
 	test("Constructs correct diff", async () => {
 
-		const log = await exec_run_withLogTrap(["tests/fixture.fail.diffs.js"])
+		const log = await exec_run_withLogTrap(["tests/fixture.fail.diffs.mjs"])
 
 		const str =
 			"    \x1B[31m{\x1B[39m\n" +

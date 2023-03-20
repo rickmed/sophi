@@ -1,7 +1,7 @@
-import { topic, test, check } from "../source/index.js"
-import { toRelPathFromProjRoot } from "./utils.js"
-import { collectSuites } from "../source/collectSuites.js"
-import { newSuite } from "../source/run.js"
+import { topic, test, check } from "../source/index.mjs"
+import { toRelPathFromProjRoot } from "./utils.mjs"
+import { collectSuites } from "../source/collectSuites.mjs"
+import { newSuite } from "../source/_run.mjs"
 
 const _toRelPathFromProjRoot = toRelPathFromProjRoot(import.meta.url)
 
@@ -9,7 +9,7 @@ topic("collectSuites()", () => {
 
 	test("only() works across files: it should select only the files that use it", async () => {
 
-		let filePath_s = ["./fixture.only.js", "./fixture.pass.js"]
+		let filePath_s = ["./fixture.only.mjs", "./fixture.pass.mjs"]
 			.map(_toRelPathFromProjRoot)
 
 		const suite = await setup(filePath_s)

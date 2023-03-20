@@ -1,7 +1,9 @@
-import { describe, test, check_is, check_Eq, run } from "../source/index.js"
-import { toRelPathFromProjRoot, findSectionInLog } from "./utils.js"
-import { toHuman } from "../source/report.js"
-import { ink } from "../source/ink.js"
+import { describe, test } from "../source/FileSuite.mjs"
+import { check_is, check_Eq} from "../source/check.mjs"
+import { _run } from "../source/_run.mjs"
+import { toRelPathFromProjRoot, findSectionInLog } from "./utils.mjs"
+import { toHuman } from "../source/report.mjs"
+import { ink } from "../source/ink.mjs"
 
 
 const NL = "\n"
@@ -17,15 +19,15 @@ describe("report()", () => {
 
 		const fixts = {
 			passedFiles: [
-				"./fixture.pass.mixedAssert.js",
-				"./fixture.pass.js",
+				"./fixture.pass.mixedAssert.mjs",
+				"./fixture.pass.mjs",
 			],
 			todoFiles: [
-				"./fixture.todo.js",
+				"./fixture.todo.mjs",
 			],
 			failFiles: [
-				"./fixture.fail.js",
-				"./fixture.fail.nonSophiAssert.js",
+				"./fixture.fail.mjs",
+				"./fixture.fail.nonSophiAssert.mjs",
 			],
 		}
 
@@ -33,7 +35,7 @@ describe("report()", () => {
 
 		const failExpectedSpecs = [
 			{
-				FailPathLoc: "tests/integration/fixture.fail.js:6:3",
+				FailPathLoc: "tests/integration/fixture.fail.mj:6:3",
 				TestTitle: "group1 ▶ Test title",
 				AssertionZone: [
 					INDENT + `    5:    test("Test title", () => {`.dim_ + NL,
@@ -47,7 +49,7 @@ describe("report()", () => {
 				],
 			},
 			{
-				FailPathLoc: "tests/integration/fixture.fail.js:24:2",
+				FailPathLoc: "tests/integration/fixture.fail.mj:24:2",
 				TestTitle: "Test title 2",
 				AssertionZone: [
 					INDENT + `    23: `.dim_ + NL,
@@ -77,7 +79,7 @@ describe("report()", () => {
 				],
 			},
 			{
-				FailPathLoc: "tests/integration/fixture.fail.js:29:2",
+				FailPathLoc: "tests/integration/fixture.fail.mj:29:2",
 				TestTitle: "Test title 3",
 				AssertionZone: [
 					INDENT + `    28:    await Promise.resolve(1)`.dim_ + NL,
@@ -91,7 +93,7 @@ describe("report()", () => {
 				],
 			},
 			{
-				FailPathLoc: "tests/integration/fixture.fail.nonSophiAssert.js:5:9",
+				FailPathLoc: "tests/integration/fixture.fail.nonSophiAssert.mj:5:9",
 				TestTitle: "Example test title",
 				AssertionZone: [
 					INDENT + `    4: test("Example test title", () => {`.dim_ + NL,
@@ -118,10 +120,10 @@ describe("report()", () => {
 			const passedFilesSection = logs.slice(++i, i += nPassedFiles)
 			const section = passedFilesSection
 
-			let printIncluded = section.includes(toPrint("tests/integration/fixture.pass.mixedAssert.js", "2 Tests"))
+			let printIncluded = section.includes(toPrint("tests/integration/fixture.pass.mixedAssert.mjs", "2 Tests"))
 			check_is(printIncluded, true)
 
-			printIncluded = section.includes(toPrint("tests/integration/fixture.pass.js", "1 Test"))
+			printIncluded = section.includes(toPrint("tests/integration/fixture.pass.mjs", "1 Test"))
 			check_is(printIncluded, true)
 
 			check_is(logs[i], NL)
@@ -206,7 +208,7 @@ describe("report()", () => {
 
 			const todoMsgs = [
 				"   \x1B[34m🖊️ Todo tests: \x1B[39m\n",
-				"      \x1B[34m● tests/integration/fixture.todo.js\x1B[39m\n",
+				"      \x1B[34m● tests/integration/fixture.todo.mj\x1B[39m\n",
 				"         \x1B[34m◻ Test title\x1B[39m\n",
 				"\n",
 			]
@@ -236,14 +238,14 @@ describe("report()", () => {
 
 	test.skip("files with no tests: prints correct info", async () => {
 
-		const fixt = ["./fixture.noTests.js"]
+		const fixt = ["./fixture.noTests.mjs"]
 		let logs = await setup(fixt)
 
 		const rec = logs.join("")
 
 		const exp = [
 			"   \x1B[34m🧟‍♀️Files with no tests: \x1B[39m\n",
-			"      🧟‍♂️\x1B[34mtests/integration/fixture.noTests.js\x1B[39m\n",
+			"      🧟‍♂️\x1B[34mtests/integration/fixture.noTests.mj\x1B[39m\n",
 			"\n",
 			"            Total \n" +
 			"   \x1B[2mFiles   \x1B[22m     0 \n" +
@@ -267,7 +269,7 @@ describe("report()", () => {
 		process.stdout._$cols = process.stdout.columns
 		process.stdout.columns = 160
 
-		await run(testFilePath_s)
+		await _run(testFilePath_s)
 
 		process.stdout.write = origStdOutWrite
 

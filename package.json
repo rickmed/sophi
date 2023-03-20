@@ -1,8 +1,15 @@
 {
-  "type": "module",
+  "name": "sophi",
+  "version": "0.1.0",
+  "description": "A novel javascript testing framework",
+	"exports": "./source/index.js",
+  "files": [
+    "source"
+  ],
+  "bin": "./cli.mjs",
   "scripts": {
     "test:cov": "cross-env 'NODE_OPTIONS=--loader @istanbuljs/esm-loader-hook --no-warnings' nyc npm test",
-    "test": "node ./tests/main.js"
+    "test": "node ./tests/start.mjs"
   },
   "devDependencies": {
     "@istanbuljs/esm-loader-hook": "^0.2.0",
@@ -14,5 +21,26 @@
   },
   "engines": {
     "node": ">=14.5.0"
-  }
+  },
+  "license": "MIT",
+  "keywords": [
+    "test",
+    "testing",
+    "fast",
+    "unit",
+    "parallel",
+    "concurrent",
+    "assert",
+    "assertion",
+    "tdd",
+    "modular"
+  ],
+  "author": {
+    "name": "Ricardo Medina"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rickmed/sophi"
+  },
+  "issues": "https://github.com/rickmed/sophi/issues"
 }

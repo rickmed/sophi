@@ -1,2 +1,2 @@
 # sophi
-An ultra fast and modular Javascript Testing Framework - WIP
+An fast and modular Javascript Testing Framework - WIP

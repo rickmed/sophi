@@ -46,7 +46,7 @@ const proxyHandler = {
 			if (codes) {
 				return buildAnsi(codes[0], codes[1], obj.str)
 			}
-			throw new Error("style not supported in ink.js")
+			throw new Error("style not supported in ink.mjs")
 		}
 
 		const codes = supportedStyleCodes.get(k)

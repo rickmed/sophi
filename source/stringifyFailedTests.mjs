@@ -1,8 +1,8 @@
 import { readFile } from "node:fs/promises"
 import { EOL } from "node:os"
 import { inspect } from "node:util"
-import { ERR_ASSERTION_SOPHI, OP, EMPTY } from "./check.js"
-import { ink } from "./ink.js"
+import { ERR_ASSERTION_SOPHI, OP, EMPTY } from "./check.mjs"
+import { ink } from "./ink.mjs"
 
 const NL = "\n"
 const NLx2 = NL + NL

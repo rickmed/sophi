@@ -1,6 +1,6 @@
-import { GLOB_SOPHI_K } from "./utils.js"
-import { objToSuite } from "./FileSuite.js"
-import { FileSuite } from "./FileSuite.js"
+import { GLOB_SOPHI_K } from "./shared.mjs"
+import { objToSuite } from "./FileSuite.mjs"
+import { FileSuite } from "./FileSuite.mjs"
 
 
 export async function collectSuites(suite, filePath_s) {

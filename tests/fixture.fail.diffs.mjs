@@ -1,4 +1,4 @@
-import { test, check } from "../source/index.js"
+import { test, check } from "../source/index.mjs"
 
 test("Deep Diffs", () => {
 

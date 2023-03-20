@@ -1,15 +1,15 @@
-import { describe, it, group, test, check, check_Throws } from "../source/index.js"
-import { FileSuite, DUPLICATE_GROUP_MSG, objToSuite } from "../source/FileSuite.js"
-import { GLOB_SOPHI_K } from "../source/utils.js"
-import { fullNameToStr } from "../source/stringifyFailedTests.js"
-import { exec_run_withLogTrap, existsInLog, fn1, fn2, fn3, fn4 } from "./utils.js"
+import { describe, it, group, test, check, check_Throws } from "../source/index.mjs"
+import { FileSuite, DUPLICATE_GROUP_MSG, objToSuite } from "../source/FileSuite.mjs"
+import { GLOB_SOPHI_K } from "../source/shared.mjs"
+import { fullNameToStr } from "../source/stringifyFailedTests.mjs"
+import { exec_run_withLogTrap, existsInLog, fn1, fn2, fn3, fn4 } from "./utils.mjs"
 
 
 describe("nested tests", () => {
 
 	it("simple", async () => {
 
-		const log = await exec_run_withLogTrap(["tests/fixture.nested_testTitles.js"])
+		const log = await exec_run_withLogTrap(["tests/fixture.nested_testTitles.mjs"])
 
 		const testTitle1 = fullNameToStr(["a", "aa", "test 2"])
 		const testTitle2 = fullNameToStr(["test 5"])

@@ -1,4 +1,4 @@
-import { fn1 } from "./utils.js"
+import { fn1 } from "./utils.mjs"
 
 
 export const tests = {

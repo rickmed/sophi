@@ -6,13 +6,13 @@ export {
 	check_Throws, check_NotThrows,
 	check_ThrowsAsync,
 	fail,
-} from "./check.js"
+} from "./check.mjs"
 
 export {
 	group, describe, topic,
 	test, it,
-} from "./FileSuite.js"
+} from "./FileSuite.mjs"
 
-export { run } from "./run.js"
+export { defaultConfig } from "./defaultConfig.mjs"
 
-export { report } from "./report.js"
+export { run } from "./run.mjs"

@@ -1,11 +1,11 @@
 import path from "node:path"
-import { collectSuites } from "./collectSuites.js"
-import { execTests } from "./execTests.js"
-import { report } from "./report.js"
-import { stringifyFailedTests } from "./stringifyFailedTests.js"
+import { collectSuites } from "./collectSuites.mjs"
+import { execTests } from "./execTests.mjs"
+import { report } from "./report.mjs"
+import { stringifyFailedTests } from "./stringifyFailedTests.mjs"
 
 
-export async function run(filePath_s, opts) {
+export async function _run(filePath_s, opts) {
 
 	let suite = newSuite(opts)
 

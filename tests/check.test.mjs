@@ -1,4 +1,4 @@
-import { describe, it, check_is as _check_is_, check_Eq as _check_Eq_ } from "../source/index.js"
+import { describe, it, check_is as _check_is_, check_Eq as _check_Eq_ } from "../source/index.mjs"
 import {
 	check, expect,
 	satisfies, lossy, strict,
@@ -11,7 +11,7 @@ import {
 	OP, MSG,
 	ERR_ASSERTION_SOPHI, SATISFIES_NO_ANONYMOUS_MSG,
 	getIssues, EMPTY,
-} from "../source/check.js"
+} from "../source/check.mjs"
 
 
 describe("check()", () => {

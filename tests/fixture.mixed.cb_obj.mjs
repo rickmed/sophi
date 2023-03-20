@@ -1,5 +1,5 @@
-import { group, test } from "../source/index.js"
-import { fn1 } from "./utils.js"
+import { group, test } from "../source/index.mjs"
+import { fn1 } from "./utils.mjs"
 
 
 group("a", () => {

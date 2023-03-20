@@ -1,5 +1,5 @@
-import { GLOB_SOPHI_K } from "./utils.js"
-import { fullNameToStr } from "./stringifyFailedTests.js"
+import { GLOB_SOPHI_K } from "./shared.mjs"
+import { fullNameToStr } from "./stringifyFailedTests.mjs"
 
 const M = {
 	SKIP: 1,
