@@ -1,7 +1,7 @@
 import { topic, test, check } from "../source/index.mjs"
 import { toRelPathFromProjRoot } from "./utils.mjs"
 import { collectSuites } from "../source/collectSuites.mjs"
-import { newSuite } from "../source/_run.mjs"
+import { newSuite } from "../source/exec.mjs"
 
 const _toRelPathFromProjRoot = toRelPathFromProjRoot(import.meta.url)
 

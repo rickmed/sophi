@@ -1,14 +1,14 @@
 import { PassThrough } from "node:stream"
 import path from "node:path"
 import { fail } from "../source/check.mjs"
-import { _run } from "../source/_run.mjs"
+import { exec } from "../source/exec.mjs"
 import { fileURLToPath } from "node:url"
 
 export async function exec_run_withLogTrap(testFiles) {
 	const stdout = new PassThrough().setEncoding("utf8")
 	let log = ""
 	stdout.on("data", x => log += x)
-	await _run(testFiles, { stdout })
+	await exec(testFiles, { stdout })
 	return log
 }
 

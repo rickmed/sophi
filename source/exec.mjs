@@ -5,7 +5,7 @@ import { report } from "./report.mjs"
 import { stringifyFailedTests } from "./stringifyFailedTests.mjs"
 
 
-export async function _run(filePath_s, opts) {
+export async function exec(filePath_s, opts) {
 
 	let suite = newSuite(opts)
 

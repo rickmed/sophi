@@ -2,7 +2,7 @@ import OS from "node:os"
 import fs from "node:fs/promises"
 import path from "node:path"
 import { defaultConfig } from "./defaultConfig.mjs"
-import { _run } from "../source/_run.mjs"
+import { exec } from "./exec.mjs"
 
 export async function run() {
 
@@ -10,7 +10,7 @@ export async function run() {
 
 	const sophiConfig = await lookConfig()
 	const testFiles = await lookupTestFiles(sophiConfig)
-	await _run(testFiles)
+	await exec(testFiles)
 }
 
 

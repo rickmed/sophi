@@ -1,6 +1,6 @@
 import { describe, test } from "../source/FileSuite.mjs"
 import { check_is, check_Eq} from "../source/check.mjs"
-import { _run } from "../source/_run.mjs"
+import { exec } from "../source/exec.mjs"
 import { toRelPathFromProjRoot, findSectionInLog } from "./utils.mjs"
 import { toHuman } from "../source/report.mjs"
 import { ink } from "../source/ink.mjs"
@@ -269,7 +269,7 @@ describe("report()", () => {
 		process.stdout._$cols = process.stdout.columns
 		process.stdout.columns = 160
 
-		await _run(testFilePath_s)
+		await exec(testFilePath_s)
 
 		process.stdout.write = origStdOutWrite
 
