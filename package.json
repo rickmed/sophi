@@ -2,7 +2,7 @@
   "name": "sophi",
   "version": "0.1.0",
   "description": "A novel javascript testing framework",
-	"exports": "./source/index.js",
+	"exports": "./source/index.mjs",
   "files": [
     "source"
   ],
