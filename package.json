@@ -2,7 +2,7 @@
   "name": "sophi",
   "version": "0.1.1",
   "description": "A novel javascript testing framework",
-	"exports": "./source/index.mjs",
+  "exports": "./source/index.mjs",
   "files": [
     "source"
   ],
@@ -14,6 +14,7 @@
   "devDependencies": {
     "@istanbuljs/esm-loader-hook": "^0.2.0",
     "cross-env": "^7.0.3",
+    "eslint": "^8.42.0",
     "nyc": "^15.1.0"
   },
   "dependencies": {
